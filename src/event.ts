@@ -1,4 +1,4 @@
-type EventListener<T> = (event: T) => void
+type EventListener<T> = (event?: T) => void
 type EventListenerRef = any
 type EventListeners<T> = Map<EventListenerRef, EventListener<T>>
 
@@ -20,7 +20,7 @@ export class Event<T> {
     this.listeners.delete(ref);
   }
 
-  callListener(event: T): void {
+  callListener(event?: T): void {
     for (const [, listener] of this.listeners) {
       listener(event);
     }
