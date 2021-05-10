@@ -22,12 +22,10 @@ export class EventEmitter<T> {
   emit(key: string, value?: T): void {
     if (this.hasListener(key)) {
       for (const [, listener] of this.listeners[key]) {
-        if (listener) {
-          if (value === undefined) {
-            listener();
-          } else {
-            listener(value);
-          }
+        if (value === undefined) {
+          listener();
+        } else {
+          listener(value);
         }
       }
     }
