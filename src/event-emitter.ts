@@ -36,7 +36,7 @@ export class EventEmitter<T> {
   private _on(
     key: string,
     listener: EventListener<T>,
-    ref?: EventListenerRef
+    ref: EventListenerRef = listener
   ): void {
     if (typeof listener !== 'function') {
       throw new Error('EventListener is not a function');
@@ -48,9 +48,7 @@ export class EventEmitter<T> {
       listeners[key] = new Map();
     }
 
-    const setRef = (ref !== undefined) ? ref : listener;
-
-    listeners[key].set(setRef, listener);
+    listeners[key].set(ref, listener);
   }
 
   on(listenerBundle: EventListenerBundle<T>, ref?: EventListenerRef): void
