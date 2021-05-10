@@ -49,7 +49,11 @@ export class EventEmitter<T> {
     listeners[key].set(ref, listener);
   }
 
-  on(listenerBundle: EventListenerBundle<T>, ref?: EventListenerRef): void
+  on(
+    listenerBundle: EventListenerBundle<T>,
+    ref?: EventListenerRef
+  ): void
+
   on(
     event: string,
     listener: EventListener<T>,
