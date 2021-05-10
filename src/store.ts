@@ -150,24 +150,3 @@ export function makeStateClient<T>(name: string): State<T> {
 
   return win[makeGlobalName(name)] as State<T>;
 }
-
-// -------------------------------------------------------------------------- //
-
-type InitialState = {
-  foo: string
-  bool: boolean,
-  num: number
-}
-
-const test = makeState<InitialState>('state', {
-  foo: 'bar',
-  bool: true,
-  num: 7
-});
-
-test.foo = 'ooo';
-test.num = 'ooo';
-
-test.on('foo', () => console.log(test.foo));
-
-test.off('foo');
