@@ -1,17 +1,17 @@
 /* global overwolf*/
 
 import { binder } from './binder';
-import { Event } from './event';
+import { SingleEvent } from './single-event';
 
 export class GameStatus {
   public isInFocus: boolean
   public isRunning: boolean
   public gameInfo: overwolf.games.RunningGameInfo | null
-  public onFocusChanged: Event<boolean>
-  public onRunningChanged: Event<boolean>
-  public onResolutionChanged: Event<overwolf.games.RunningGameInfo>
-  public onGameChanged: Event<overwolf.games.RunningGameInfo | null>
-  public onChanged: Event<GameStatus>
+  public onFocusChanged: SingleEvent<boolean>
+  public onRunningChanged: SingleEvent<boolean>
+  public onResolutionChanged: SingleEvent<overwolf.games.RunningGameInfo>
+  public onGameChanged: SingleEvent<overwolf.games.RunningGameInfo | null>
+  public onChanged: SingleEvent<GameStatus>
 
   private lastGameID: number | null
   private started: boolean
@@ -28,11 +28,11 @@ export class GameStatus {
     this.startPromise = this.start();
     this.bound = binder<GameStatus>(this);
 
-    this.onFocusChanged = new Event();
-    this.onRunningChanged = new Event();
-    this.onResolutionChanged = new Event();
-    this.onGameChanged = new Event();
-    this.onChanged = new Event();
+    this.onFocusChanged = new SingleEvent();
+    this.onRunningChanged = new SingleEvent();
+    this.onResolutionChanged = new SingleEvent();
+    this.onGameChanged = new SingleEvent();
+    this.onChanged = new SingleEvent();
   }
 
   async start(): Promise<void> {

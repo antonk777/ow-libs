@@ -2,7 +2,7 @@ type EventListener<T> = (event?: T) => void
 type EventListenerRef = any
 type EventListeners<T> = Map<EventListenerRef, EventListener<T>>
 
-export class Event<T> {
+export class SingleEvent<T> {
   private listeners: EventListeners<T>
 
   constructor() {

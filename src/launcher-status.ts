@@ -1,14 +1,14 @@
 /* global overwolf*/
 
 import { binder } from './binder';
-import { Event } from './event';
+import { SingleEvent } from './single-event';
 
 export class LauncherStatus {
   public isInFocus: boolean
   public launcherInfo: overwolf.games.launchers.LauncherInfo | null
-  public onFocusChanged: Event<boolean>
-  public onRunningChanged: Event<boolean>
-  public onChanged: Event<LauncherStatus>
+  public onFocusChanged: SingleEvent<boolean>
+  public onRunningChanged: SingleEvent<boolean>
+  public onChanged: SingleEvent<LauncherStatus>
 
   private bound: LauncherStatus
   private started: boolean
@@ -22,9 +22,9 @@ export class LauncherStatus {
     this.started = false;
     this.startPromise = this.start();
 
-    this.onFocusChanged = new Event();
-    this.onRunningChanged = new Event();
-    this.onChanged = new Event();
+    this.onFocusChanged = new SingleEvent();
+    this.onRunningChanged = new SingleEvent();
+    this.onChanged = new SingleEvent();
   }
 
   get isRunning(): boolean {
