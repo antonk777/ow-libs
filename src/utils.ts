@@ -51,6 +51,8 @@ export function L(...args: any[]): any[] {
   return out;
 }
 
+export const log = L;
+
 export function beforeClose(fn: () => void): void {
   window.addEventListener('beforeunload', e => {
     console.log('beforeunload fired', e);

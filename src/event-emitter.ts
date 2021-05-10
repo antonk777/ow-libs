@@ -1,15 +1,15 @@
 /* eslint-disable no-unused-vars */
-type EventListener = (...args: any[]) => void
+type EventListener<T> = (event?: T) => void
 type EventListenerRef = any
-type EventListenerStore = {
-  [key: string]: Map<EventListenerRef, EventListener>
+type EventListenerStore<T> = {
+  [key: string]: Map<EventListenerRef, EventListener<T>>
 }
-type EventListenerBundle = {
-  [key: string]: EventListener
+type EventListenerBundle<T> = {
+  [key: string]: EventListener<T>
 }
 
-export class EventEmitter {
-  private listeners: EventListenerStore
+export class EventEmitter<T> {
+  private listeners: EventListenerStore<T>
 
   constructor() {
     this.listeners = {};
@@ -19,11 +19,15 @@ export class EventEmitter {
     return !!(this.listeners[key] && this.listeners[key].size > 0);
   }
 
-  emit<T>(key: string, value?: T): void {
+  emit(key: string, value?: T): void {
     if (this.hasListener(key)) {
       for (const [, listener] of this.listeners[key]) {
         if (listener) {
-          listener(value);
+          if (value === undefined) {
+            listener();
+          } else {
+            listener(value);
+          }
         }
       }
     }
@@ -31,7 +35,7 @@ export class EventEmitter {
 
   private _on(
     key: string,
-    listener: EventListener,
+    listener: EventListener<T>,
     ref?: EventListenerRef
   ): void {
     if (typeof listener !== 'function') {
@@ -44,25 +48,27 @@ export class EventEmitter {
       listeners[key] = new Map();
     }
 
-    listeners[key].set((ref !== undefined) ? ref : listener, listener);
+    const setRef = (ref !== undefined) ? ref : listener;
+
+    listeners[key].set(setRef, listener);
   }
 
-  on(listenerBundle: EventListenerBundle, ref?: EventListenerRef): void
+  on(listenerBundle: EventListenerBundle<T>, ref?: EventListenerRef): void
   on(
     event: string,
-    listener: EventListener,
+    listener: EventListener<T>,
     ref?: EventListenerRef
   ): void
 
   on(
-    eventOrBundle: string | EventListenerBundle,
-    refOrListener?: EventListener | EventListenerRef,
+    eventOrBundle: string | EventListenerBundle<T>,
+    refOrListener?: EventListener<T> | EventListenerRef,
     ref?: EventListenerRef
   ): void {
     if (typeof refOrListener === 'function' && ref !== undefined) {
-      this._on(eventOrBundle as string, refOrListener as EventListener, ref);
+      this._on(eventOrBundle as string, refOrListener as EventListener<T>, ref);
     } else {
-      const listenerBundle = eventOrBundle as EventListenerBundle;
+      const listenerBundle = eventOrBundle as EventListenerBundle<T>;
 
       for (const key in listenerBundle) {
         if (listenerBundle.hasOwnProperty(key)) {
@@ -111,26 +117,5 @@ export class EventEmitter {
     } else {
       this._off(eventNamesOrRef);
     }
-  }
-
-  once(key: string, listener: EventListener, ref?: EventListenerRef): void {
-    if (typeof listener !== 'function') {
-      throw new Error('listener is not a function');
-    }
-
-    const { listeners } = this;
-
-    if (!listeners[key]) {
-      listeners[key] = new Map();
-    }
-
-    if (ref === undefined) {
-      throw new Error('once listener ref cannot be undefined');
-    }
-
-    listeners[key].set(ref, value => {
-      listener(value);
-      this._off(key, ref);
-    });
   }
 }

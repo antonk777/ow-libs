@@ -1,12 +1,17 @@
 /* global overwolf*/
 
 import { binder } from './binder';
-import { EventEmitter } from './';
+import { Event } from './event';
 
-export class GameStatus extends EventEmitter {
+export class GameStatus {
   public isInFocus: boolean
   public isRunning: boolean
   public gameInfo: overwolf.games.RunningGameInfo | null
+  public onFocusChanged: Event<boolean>
+  public onRunningChanged: Event<boolean>
+  public onResolutionChanged: Event<overwolf.games.RunningGameInfo>
+  public onGameChanged: Event<overwolf.games.RunningGameInfo | null>
+  public onChanged: Event<GameStatus>
 
   private lastGameID: number | null
   private started: boolean
@@ -14,8 +19,6 @@ export class GameStatus extends EventEmitter {
   private bound: GameStatus
 
   constructor() {
-    super();
-
     this.isInFocus = false;
     this.isRunning = false;
     this.gameInfo = null;
@@ -24,6 +27,12 @@ export class GameStatus extends EventEmitter {
     this.started = false;
     this.startPromise = this.start();
     this.bound = binder<GameStatus>(this);
+
+    this.onFocusChanged = new Event();
+    this.onRunningChanged = new Event();
+    this.onResolutionChanged = new Event();
+    this.onGameChanged = new Event();
+    this.onChanged = new Event();
   }
 
   async start(): Promise<void> {
@@ -78,19 +87,23 @@ export class GameStatus extends EventEmitter {
     }
 
     if (isInFocusChanged) {
-      this.emit('focus');
+      this.onFocusChanged.callListener(isInFocus);
     }
 
     if (isRunningChanged) {
-      this.emit('running');
+      this.onRunningChanged.callListener(isInFocus);
     }
 
-    if (e.resolutionChanged) {
-      this.emit('resolution');
+    if (e && e.gameInfo && e.resolutionChanged) {
+      this.onResolutionChanged.callListener(e.gameInfo);
     }
 
     if (e.gameChanged) {
-      this.emit('gameChange');
+      if (e && e.gameInfo) {
+        this.onGameChanged.callListener(e.gameInfo);
+      } else {
+        this.onGameChanged.callListener(null);
+      }
     }
 
     if (
@@ -99,7 +112,7 @@ export class GameStatus extends EventEmitter {
       e.resolutionChanged ||
       e.gameChanged
     ) {
-      this.emit('*');
+      this.onChanged.callListener(this);
     }
   }
 

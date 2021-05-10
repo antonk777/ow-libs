@@ -1,16 +1,17 @@
 /* global overwolf*/
 
 import { binder } from './binder';
-import { GameStatus, EventEmitter, Utils } from './';
+import { EventEmitter, Utils } from './';
+import type { GameStatus } from './';
 
-export interface GameEvent {
+export type GameEvent = {
   path: string
   category: string
   key: string
   val: any
 }
 
-export class GameEvents extends EventEmitter {
+export class GameEvents extends EventEmitter<GameEvent> {
   private features: string[]
   // private featuresSet: string[] | null
   private state: { [key: string]: any }
@@ -94,8 +95,8 @@ export class GameEvents extends EventEmitter {
 
             const e: GameEvent = { path, category, key, val };
 
-            this.emit<GameEvent>('*', e);
-            this.emit<GameEvent>(path, e);
+            this.emit(path, e);
+            this.emit('*', e);
           }
         }
       }
@@ -129,8 +130,8 @@ export class GameEvents extends EventEmitter {
 
               const e: GameEvent = { path, category, key, val };
 
-              this.emit<GameEvent>('*', e);
-              this.emit<GameEvent>(path, e);
+              this.emit(path, e);
+              this.emit('*', e);
             }
           }
         }
@@ -164,8 +165,8 @@ export class GameEvents extends EventEmitter {
 
       const e: GameEvent = { path, category, key, val };
 
-      this.emit<GameEvent>('*', e);
-      this.emit<GameEvent>(path, e);
+      this.emit(path, e);
+      this.emit('*', e);
     }
   }
 

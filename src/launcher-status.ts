@@ -1,24 +1,30 @@
 /* global overwolf*/
 
 import { binder } from './binder';
-import { EventEmitter } from './';
+import { Event } from './event';
 
-export class LauncherStatus extends EventEmitter {
+export class LauncherStatus {
   public isInFocus: boolean
   public launcherInfo: overwolf.games.launchers.LauncherInfo | null
+  public onFocusChanged: Event<boolean>
+  public onRunningChanged: Event<boolean>
+  public onChanged: Event<LauncherStatus>
+
   private bound: LauncherStatus
   private started: boolean
   private startPromise: Promise<void>
 
   constructor() {
-    super();
-
     this.launcherInfo = null;
     this.isInFocus = false;
 
     this.bound = binder<LauncherStatus>(this);
     this.started = false;
     this.startPromise = this.start();
+
+    this.onFocusChanged = new Event();
+    this.onRunningChanged = new Event();
+    this.onChanged = new Event();
   }
 
   get isRunning(): boolean {
@@ -79,11 +85,11 @@ export class LauncherStatus extends EventEmitter {
 
     if (isInFocusChanged) {
       this.isInFocus = info.isInFocus;
-      this.emit('focus');
+      this.onFocusChanged.callListener(this.isInFocus);
     }
 
-    this.emit('running');
-    this.emit('*');
+    this.onRunningChanged.callListener(true);
+    this.onChanged.callListener(this);
   }
 
   onLauncherTerminated(): void {
@@ -94,13 +100,12 @@ export class LauncherStatus extends EventEmitter {
     this.launcherInfo = null;
     this.isInFocus = false;
 
-    this.emit('running');
-
     if (isInFocusChanged) {
-      this.emit('focus');
+      this.onFocusChanged.callListener(this.isInFocus);
     }
 
-    this.emit('*');
+    this.onRunningChanged.callListener(false);
+    this.onChanged.callListener(this);
   }
 
   onLauncherInfoUpdated({ info }: overwolf.games.launchers.UpdatedEvent): void {
@@ -112,13 +117,10 @@ export class LauncherStatus extends EventEmitter {
 
     if (isInFocusChanged) {
       this.isInFocus = info.isInFocus;
+      this.onFocusChanged.callListener(this.isInFocus);
     }
 
-    if (isInFocusChanged) {
-      this.emit('focus');
-    }
-
-    this.emit('*');
+    this.onChanged.callListener(this);
   }
 
   get launcherID(): number | null {
