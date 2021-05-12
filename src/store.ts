@@ -152,17 +152,23 @@ export function makeState<T extends MapByString>
     has(target, key: string) {
       return target.has(key);
     },
-    get(target, prop: string) {
-      switch (prop) {
+    get(target, key: string) {
+      switch (key) {
         case 'on':
           return target.on.bind(target);
         case 'off':
           return target.off.bind(target);
         default:
-          return target.get(prop);
+          return target.get(key);
       }
     },
     set(target, key: string, value: any) {
+      switch (key) {
+        case 'on':
+        case 'off':
+          throw new Error(`${key} is a reserved property for Store`);
+      }
+
       target.set(key, value);
 
       return true;
