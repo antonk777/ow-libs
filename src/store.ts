@@ -27,7 +27,10 @@ class StateManager<T extends MapByString> extends EventEmitter<T> {
     this.#localStoragePrefix = `${name}/`;
 
     if (this.#persistent) {
-      this.#state = this.hydratePersistentState(initialState);
+      this.#state = StateManager.hydratePersistentState<T>(
+        initialState,
+        this.#localStoragePrefix
+      );
     } else {
       this.#state = Utils.objectCopy<T>(initialState);
     }
@@ -74,15 +77,15 @@ class StateManager<T extends MapByString> extends EventEmitter<T> {
     this.emit('*', this.#state);
   }
 
-  private hydratePersistentState(initialState: T): T {
+  private static hydratePersistentState<T>(initialState: T, prefix: string): T {
     const
       state = Utils.objectCopy<T>(initialState),
-      prefixLength = this.#localStoragePrefix.length;
+      prefixLength = prefix.length;
 
     for (const key in localStorage) {
       if (
         key.length > prefixLength &&
-        key.startsWith(this.#localStoragePrefix)
+        key.startsWith(prefix)
       ) {
         const
           stringified: string = localStorage[key],
