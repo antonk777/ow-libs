@@ -81,7 +81,7 @@ export function makeState<T extends MapByString>
 (name: string, initialState: T, persistent = false): State<T> {
   const
     lsPrefix = `${name}/`,
-    bus = new EventEmitter(),
+    bus = new EventEmitter<State<T>>(),
     busOn = bus.on.bind(bus),
     busOff = bus.off.bind(bus);
 
@@ -128,7 +128,7 @@ export function makeState<T extends MapByString>
         localStorage[lsPrefix + prop] = stringified;
       }
 
-      bus.emit(prop);
+      bus.emit(prop, store);
 
       return true;
     },
