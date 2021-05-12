@@ -9,19 +9,15 @@ type EventListenerBundle<T> = {
 }
 
 export class EventEmitter<T> {
-  private listeners: EventListenerStore<T>
-
-  constructor() {
-    this.listeners = {};
-  }
+  readonly #listeners: EventListenerStore<T> = {}
 
   hasListener(key: string): boolean {
-    return !!(this.listeners[key] && this.listeners[key].size > 0);
+    return !!(this.#listeners[key] && this.#listeners[key].size > 0);
   }
 
   emit(key: string, value?: T): void {
     if (this.hasListener(key)) {
-      for (const [, listener] of this.listeners[key]) {
+      for (const [, listener] of this.#listeners[key]) {
         if (value === undefined) {
           listener();
         } else {
@@ -40,13 +36,11 @@ export class EventEmitter<T> {
       throw new Error('EventListener is not a function');
     }
 
-    const { listeners } = this;
-
-    if (!listeners[key]) {
-      listeners[key] = new Map();
+    if (!this.#listeners[key]) {
+      this.#listeners[key] = new Map();
     }
 
-    listeners[key].set(ref, listener);
+    this.#listeners[key].set(ref, listener);
   }
 
   on(
@@ -82,23 +76,24 @@ export class EventEmitter<T> {
     eventOrRef: string | EventListenerRef,
     ref?: EventListenerRef
   ): void {
-    const { listeners } = this;
-
     if (ref === undefined) {
-      for (const key in listeners) {
-        if (listeners[key] && listeners[key].has(eventOrRef)) {
-          listeners[key].delete(eventOrRef);
+      for (const key in this.#listeners) {
+        if (this.#listeners[key] && this.#listeners[key].has(eventOrRef)) {
+          this.#listeners[key].delete(eventOrRef);
 
-          if (listeners[key].size === 0) {
-            delete listeners[key];
+          if (this.#listeners[key].size === 0) {
+            delete this.#listeners[key];
           }
         }
       }
-    } else if (listeners[eventOrRef] && listeners[eventOrRef].has(ref)) {
-      listeners[eventOrRef].delete(ref);
+    } else if (
+      this.#listeners[eventOrRef] &&
+      this.#listeners[eventOrRef].has(ref)
+    ) {
+      this.#listeners[eventOrRef].delete(ref);
 
-      if (listeners[eventOrRef].size === 0) {
-        delete listeners[eventOrRef];
+      if (this.#listeners[eventOrRef].size === 0) {
+        delete this.#listeners[eventOrRef];
       }
     }
   }

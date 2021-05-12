@@ -3,7 +3,7 @@
 import { EventEmitter, Utils } from './';
 
 type MapByString = {
-  [prop: string]: any
+  [key: string]: any
 }
 
 interface StateSubscription<T> {
@@ -11,124 +11,156 @@ interface StateSubscription<T> {
   off: EventEmitter<T>['off']
 }
 
-export type State<T> = T & StateSubscription<unknown>
+export type State<T> = T & StateSubscription<T>
 
-function fastParse(val?: string): any {
-  switch (val) {
-    case 'true':
-      return true;
-    case 'false':
-      return false;
-    case 'null':
-      return null;
-    case 'undefined':
-    case undefined:
-      return undefined;
-    default:
-      return JSON.parse(val);
-  }
-}
+class StateManager<T extends MapByString> extends EventEmitter<T> {
+  readonly name: string
+  readonly #state: T
+  readonly #persistent: boolean
+  readonly #localStoragePrefix: string
 
-function fastStringify(val: any): string {
-  switch (val) {
-    case true:
-      return 'true';
-    case false:
-      return 'false';
-    case null:
-      return 'null';
-    case undefined:
-      return 'undefined';
-    default:
-      return JSON.stringify(val);
-  }
-}
+  constructor(name: string, initialState: T, persistent = false) {
+    super();
 
-function shouldBeStringified(val: any): boolean {
-  const type = typeof val;
-  return (type === 'string' || (type === 'object' && val !== null));
-}
+    this.name = name;
+    this.#persistent = persistent;
+    this.#localStoragePrefix = `${name}/`;
 
-function makeGlobalName(name: string): string {
-  return `OverwolfGlobalState/${name}`;
-}
-
-function hydratePersistentState<T extends MapByString>
-(prefix: string, initialState: T): T {
-  const
-    state = Utils.objectCopy<T>(initialState),
-    prefixLength = prefix.length;
-
-  for (const key in localStorage) {
-    if (key.length > prefixLength && key.startsWith(prefix)) {
-      const
-        stringified: string = localStorage[key],
-        stateKey = key.substr(prefixLength),
-        value = fastParse(localStorage[key]);
-
-      if (shouldBeStringified(value)) {
-        (state as MapByString)[stateKey] = stringified;
-      } else {
-        (state as MapByString)[stateKey] = value;
-      }
+    if (this.#persistent) {
+      this.#state = this.hydratePersistentState(initialState);
+    } else {
+      this.#state = Utils.objectCopy<T>(initialState);
     }
   }
 
-  return state;
+  keys(): string[] {
+    return Object.keys(this.#state);
+  }
+
+  has(key: string): boolean {
+    return (this.#state[key] !== undefined);
+  }
+
+  get(key: string): void {
+    const value = this.#state[key];
+
+    if (typeof value === 'string' && value !== undefined) {
+      return StateManager.fastParse(value);
+    }
+
+    return value;
+  }
+
+  set(key: string, value: any): void {
+    if (!(this.#state as MapByString).hasOwnProperty(key)) {
+      throw new Error(`Property ${key} does not exist in state`);
+    }
+
+    const shallBeStringified = StateManager.shouldBeStringified(value);
+
+    const stringified = (shallBeStringified || this.#persistent)
+      ? StateManager.fastStringify(value)
+      : undefined;
+
+    (this.#state as MapByString)[key] = shallBeStringified
+      ? stringified
+      : value;
+
+    if (this.#persistent) {
+      localStorage[this.#localStoragePrefix + key] = stringified;
+    }
+
+    this.emit(key, this.#state);
+    this.emit('*', this.#state);
+  }
+
+  private hydratePersistentState(initialState: T): T {
+    const
+      state = Utils.objectCopy<T>(initialState),
+      prefixLength = this.#localStoragePrefix.length;
+
+    for (const key in localStorage) {
+      if (
+        key.length > prefixLength &&
+        key.startsWith(this.#localStoragePrefix)
+      ) {
+        const
+          stringified: string = localStorage[key],
+          stateKey = key.substr(prefixLength),
+          value = StateManager.fastParse(localStorage[key]);
+
+        if (StateManager.shouldBeStringified(value)) {
+          (state as MapByString)[stateKey] = stringified;
+        } else {
+          (state as MapByString)[stateKey] = value;
+        }
+      }
+    }
+
+    return state;
+  }
+
+  private static fastParse(val?: string): any {
+    switch (val) {
+      case 'true':
+        return true;
+      case 'false':
+        return false;
+      case 'null':
+        return null;
+      case 'undefined':
+      case undefined:
+        return undefined;
+      default:
+        return JSON.parse(val);
+    }
+  }
+
+  private static fastStringify(val: any): string {
+    switch (val) {
+      case true:
+        return 'true';
+      case false:
+        return 'false';
+      case null:
+        return 'null';
+      case undefined:
+        return 'undefined';
+      default:
+        return JSON.stringify(val);
+    }
+  }
+
+  private static shouldBeStringified(val: any): boolean {
+    const type = typeof val;
+    return (type === 'string' || (type === 'object' && val !== null));
+  }
+}
+
+function makeGlobalStateName(name: string): string {
+  return `OverwolfGlobalState/${name}`;
 }
 
 export function makeState<T extends MapByString>
 (name: string, initialState: T, persistent = false): State<T> {
-  const
-    lsPrefix = `${name}/`,
-    bus = new EventEmitter<State<T>>(),
-    busOn = bus.on.bind(bus),
-    busOff = bus.off.bind(bus);
+  const manager = new StateManager(name, initialState, persistent);
 
-  const state = persistent
-    ? hydratePersistentState<T>(lsPrefix, initialState)
-    : Utils.objectCopy<T>(initialState);
-
-  const store = new Proxy<T>(state, {
-    has(target, prop: string) {
-      return target.hasOwnProperty(prop);
+  const store = new Proxy<StateManager<T>>(manager, {
+    has(target, key: string) {
+      return target.has(key);
     },
     get(target, prop: string) {
       switch (prop) {
         case 'on':
-          return busOn;
+          return target.on.bind(target);
         case 'off':
-          return busOff;
+          return target.off.bind(target);
+        default:
+          return target.get(prop);
       }
-
-      const value = target[prop];
-
-      if (typeof value === 'string' && value !== undefined) {
-        return fastParse(value);
-      }
-
-      return value;
     },
-    set(target, prop: string, value: any) {
-      const currentState = (target as MapByString);
-
-      if (!target.hasOwnProperty(prop)) {
-        throw new Error(`Property ${prop} does not exist in state`);
-      }
-
-      const shallBeStringified = shouldBeStringified(value);
-
-      const stringified = (shallBeStringified || persistent)
-        ? fastStringify(value)
-        : undefined;
-
-      currentState[prop] = shallBeStringified ? stringified : value;
-
-      if (persistent) {
-        localStorage[lsPrefix + prop] = stringified;
-      }
-
-      bus.emit(prop, store);
+    set(target, key: string, value: any) {
+      target.set(key, value);
 
       return true;
     },
@@ -138,15 +170,15 @@ export function makeState<T extends MapByString>
     ownKeys() {
       return [];
     }
-  }) as State<T>;
+  });
 
-  (window as MapByString)[makeGlobalName(name)] = store;
+  (window as MapByString)[makeGlobalStateName(name)] = store;
 
-  return store;
+  return store as unknown as State<T>;
 }
 
 export function makeStateClient<T>(name: string): State<T> {
   const win = overwolf.windows.getMainWindow() as MapByString;
 
-  return win[makeGlobalName(name)] as State<T>;
+  return win[makeGlobalStateName(name)] as State<T>;
 }

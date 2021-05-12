@@ -6,21 +6,21 @@ import { SingleEvent } from './single-event';
 export class LauncherStatus {
   public isInFocus: boolean
   public launcherInfo: overwolf.games.launchers.LauncherInfo | null
-  public onFocusChanged: SingleEvent<boolean>
-  public onRunningChanged: SingleEvent<boolean>
-  public onChanged: SingleEvent<LauncherStatus>
+  public readonly onFocusChanged: SingleEvent<boolean>
+  public readonly onRunningChanged: SingleEvent<boolean>
+  public readonly onChanged: SingleEvent<LauncherStatus>
 
-  private bound: LauncherStatus
-  private started: boolean
-  private startPromise: Promise<void>
+  readonly #bound: LauncherStatus
+  readonly #startPromise: Promise<void>
+  #started: boolean
 
   constructor() {
     this.launcherInfo = null;
     this.isInFocus = false;
 
-    this.bound = binder<LauncherStatus>(this);
-    this.started = false;
-    this.startPromise = this.start();
+    this.#bound = binder<LauncherStatus>(this);
+    this.#started = false;
+    this.#startPromise = this.start();
 
     this.onFocusChanged = new SingleEvent();
     this.onRunningChanged = new SingleEvent();
@@ -32,10 +32,12 @@ export class LauncherStatus {
   }
 
   async start(): Promise<void> {
-    if (this.started) return;
+    if (this.#started) {
+      return;
+    }
 
-    if (this.startPromise) {
-      await this.startPromise;
+    if (this.#startPromise) {
+      await this.#startPromise;
       return;
     }
 
@@ -58,22 +60,22 @@ export class LauncherStatus {
     this.isInFocus = !!(this.launcherInfo && this.launcherInfo.isInFocus);
 
     overwolf.games.launchers.onLaunched
-      .addListener(this.bound.onLauncherLaunched);
+      .addListener(this.#bound.onLauncherLaunched);
     overwolf.games.launchers.onTerminated
-      .addListener(this.bound.onLauncherTerminated);
+      .addListener(this.#bound.onLauncherTerminated);
     overwolf.games.launchers.onUpdated
-      .addListener(this.bound.onLauncherInfoUpdated);
+      .addListener(this.#bound.onLauncherInfoUpdated);
 
-    this.started = true;
+    this.#started = true;
   }
 
   destroy(): void {
     overwolf.games.launchers.onLaunched
-      .removeListener(this.bound.onLauncherLaunched);
+      .removeListener(this.#bound.onLauncherLaunched);
     overwolf.games.launchers.onTerminated
-      .removeListener(this.bound.onLauncherTerminated);
+      .removeListener(this.#bound.onLauncherTerminated);
     overwolf.games.launchers.onUpdated
-      .removeListener(this.bound.onLauncherInfoUpdated);
+      .removeListener(this.#bound.onLauncherInfoUpdated);
   }
 
   onLauncherLaunched(info: overwolf.games.launchers.LauncherInfo): void {

@@ -3,16 +3,16 @@
 const NOT_CURRENT_WINDOW = 'Method does not support windows other than current';
 
 export class OverwolfWindow {
-  private name: string | null
-  private id: string | null
+  #name: string | null
+  #id: string | null
 
   constructor(name: string | null = null) {
-    this.name = name;
-    this.id = null;
+    this.#name = name;
+    this.#id = null;
   }
 
   get isCurrent(): boolean {
-    return (this.name === null);
+    return (this.#name === null);
   }
 
   obtain(): Promise<overwolf.windows.WindowInfo> {
@@ -29,12 +29,12 @@ export class OverwolfWindow {
     });
 
     if (result && result.success && result.window && result.window.id) {
-      this.id = result.window.id;
+      this.#id = result.window.id;
 
       return result.window;
     }
 
-    this.id = null;
+    this.#id = null;
 
     throw new OverwolfWindowError({ result });
 
@@ -42,19 +42,19 @@ export class OverwolfWindow {
 
   async obtainByName(): Promise<overwolf.windows.WindowInfo> {
     const result: overwolf.windows.WindowResult = await new Promise(resolve => {
-      overwolf.windows.obtainDeclaredWindow(this.name as string, resolve);
+      overwolf.windows.obtainDeclaredWindow(this.#name as string, resolve);
     });
 
     if (result && result.success && result.window && result.window.id) {
-      this.id = result.window.id;
+      this.#id = result.window.id;
 
       return result.window;
     }
 
-    this.id = null;
+    this.#id = null;
 
     throw new OverwolfWindowError({
-      args: [this.name],
+      args: [this.#name],
       result
     });
 
@@ -65,12 +65,12 @@ export class OverwolfWindow {
 
     const result: overwolf.windows.WindowIdResult =
       await new Promise(resolve => {
-        overwolf.windows.restore(this.id as string, resolve);
+        overwolf.windows.restore(this.#id as string, resolve);
       });
 
     if (!result || !result.success) {
       throw new OverwolfWindowError({
-        args: [this.id],
+        args: [this.#id],
         result
       });
     }
@@ -81,12 +81,12 @@ export class OverwolfWindow {
 
     const result: overwolf.windows.WindowIdResult =
       await new Promise(resolve => {
-        overwolf.windows.minimize(this.id as string, resolve);
+        overwolf.windows.minimize(this.#id as string, resolve);
       });
 
     if (!result || !result.success) {
       throw new OverwolfWindowError({
-        args: [this.id],
+        args: [this.#id],
         result
       });
     }
@@ -97,12 +97,12 @@ export class OverwolfWindow {
 
     const result: overwolf.windows.WindowIdResult =
       await new Promise(resolve => {
-        overwolf.windows.maximize(this.id as string, resolve);
+        overwolf.windows.maximize(this.#id as string, resolve);
       });
 
     if (!result || !result.success) {
       throw new OverwolfWindowError({
-        args: [this.id],
+        args: [this.#id],
         result
       });
     }
@@ -113,12 +113,12 @@ export class OverwolfWindow {
 
     const result: overwolf.windows.WindowIdResult =
       await new Promise(resolve => {
-        overwolf.windows.hide(this.id as string, resolve);
+        overwolf.windows.hide(this.#id as string, resolve);
       });
 
     if (!result || !result.success) {
       throw new OverwolfWindowError({
-        args: [this.id],
+        args: [this.#id],
         result
       });
     }
@@ -132,7 +132,7 @@ export class OverwolfWindow {
     await this.obtain();
 
     const changeSizeParams: overwolf.windows.ChangeWindowSizeParams = {
-      window_id: this.id as string,
+      window_id: this.#id as string,
       width,
       height,
       auto_dpi_resize: autoDpiResize
@@ -155,12 +155,12 @@ export class OverwolfWindow {
 
     const result: overwolf.windows.WindowIdResult =
       await new Promise(resolve => {
-        overwolf.windows.changePosition(this.id as string, left, top, resolve);
+        overwolf.windows.changePosition(this.#id as string, left, top, resolve);
       });
 
     if (!result || !result.success) {
       throw new OverwolfWindowError({
-        args: [this.id, left, top],
+        args: [this.#id, left, top],
         result
       });
     }
@@ -171,7 +171,7 @@ export class OverwolfWindow {
 
     const result: overwolf.windows.DragMovedResult =
       await new Promise(resolve => {
-        overwolf.windows.dragMove(this.id as string, resolve);
+        overwolf.windows.dragMove(this.#id as string, resolve);
       });
 
     if (result && result.success) {
@@ -179,7 +179,7 @@ export class OverwolfWindow {
     }
 
     throw new OverwolfWindowError({
-      args: [this.id],
+      args: [this.#id],
       result
     });
 
@@ -188,7 +188,7 @@ export class OverwolfWindow {
   async dragResize(edge: overwolf.windows.enums.WindowDragEdge): Promise<void> {
     await this.obtain();
 
-    overwolf.windows.dragResize(this.id as string, edge);
+    overwolf.windows.dragResize(this.#id as string, edge);
   }
 
   async getWindowState(): Promise<overwolf.windows.GetWindowStateResult> {
@@ -196,7 +196,7 @@ export class OverwolfWindow {
 
     const result: overwolf.windows.GetWindowStateResult =
       await new Promise(resolve => {
-        overwolf.windows.getWindowState(this.id as string, resolve);
+        overwolf.windows.getWindowState(this.#id as string, resolve);
       });
 
     if (result && result.success) {
@@ -204,7 +204,7 @@ export class OverwolfWindow {
     }
 
     throw new OverwolfWindowError({
-      args: [this.id],
+      args: [this.#id],
       result
     });
 
@@ -216,7 +216,7 @@ export class OverwolfWindow {
     const result: overwolf.windows.WindowIdResult =
       await new Promise(resolve => {
         overwolf.windows.setTopmost(
-          this.id as string,
+          this.#id as string,
           shouldBeTopmost,
           resolve
         );
@@ -224,7 +224,7 @@ export class OverwolfWindow {
 
     if (!result || !result.success) {
       throw new OverwolfWindowError({
-        args: [this.id, shouldBeTopmost],
+        args: [this.#id, shouldBeTopmost],
         result
       });
     }
@@ -235,12 +235,12 @@ export class OverwolfWindow {
 
     const result: overwolf.windows.WindowIdResult =
       await new Promise(resolve => {
-        overwolf.windows.sendToBack(this.id as string, resolve);
+        overwolf.windows.sendToBack(this.#id as string, resolve);
       });
 
     if (!result || !result.success) {
       throw new OverwolfWindowError({
-        args: [this.id],
+        args: [this.#id],
         result
       });
     }
@@ -251,12 +251,12 @@ export class OverwolfWindow {
 
     const result: overwolf.windows.WindowIdResult =
       await new Promise(resolve => {
-        overwolf.windows.bringToFront(this.id as string, grabFocus, resolve);
+        overwolf.windows.bringToFront(this.#id as string, grabFocus, resolve);
       });
 
     if (!result || !result.success) {
       throw new OverwolfWindowError({
-        args: [this.id, grabFocus],
+        args: [this.#id, grabFocus],
         result
       });
     }
@@ -268,12 +268,12 @@ export class OverwolfWindow {
     await this.obtain();
 
     const result: overwolf.Result = await new Promise(resolve => {
-      overwolf.windows.setPosition(this.id as string, properties, resolve);
+      overwolf.windows.setPosition(this.#id as string, properties, resolve);
     });
 
     if (!result || !result.success) {
       throw new OverwolfWindowError({
-        args: [this.id, properties],
+        args: [this.#id, properties],
         result
       });
     }
@@ -281,7 +281,9 @@ export class OverwolfWindow {
 
   async isWindowVisibleToUser()
   : Promise<overwolf.windows.IsWindowVisibleToUserResult> {
-    if (!this.isCurrent) throw new Error(NOT_CURRENT_WINDOW);
+    if (!this.isCurrent) {
+      throw new Error(NOT_CURRENT_WINDOW);
+    }
 
     const result: overwolf.windows.IsWindowVisibleToUserResult =
       await new Promise(resolve => {
@@ -302,12 +304,12 @@ export class OverwolfWindow {
     if (win && win.stateEx !== 'closed') {
       const result: overwolf.windows.WindowIdResult =
         await new Promise(resolve => {
-          overwolf.windows.close(this.id as string, resolve);
+          overwolf.windows.close(this.#id as string, resolve);
         });
 
       if (!result || !result.success) {
         throw new OverwolfWindowError({
-          args: [this.id],
+          args: [this.#id],
           result
         });
       }
@@ -332,7 +334,7 @@ export class OverwolfWindow {
   async setZoom(zoomFactor: number): Promise<void> {
     await this.obtain();
 
-    overwolf.windows.setZoom(zoomFactor, this.id as string);
+    overwolf.windows.setZoom(zoomFactor, this.#id as string);
   }
 
   async center(): Promise<void> {
@@ -411,13 +413,16 @@ export class OverwolfWindowError extends Error {
   constructor({ result, args = [] }: OverwolfWindowErrorProps) {
     let message = JSON.stringify(result);
 
-    if (args && args.length) message += ` args: ${JSON.stringify(args)}`;
+    if (args && args.length) {
+      message += ` args: ${JSON.stringify(args)}`;
+    }
 
     super(message);
 
     this.name = 'OverwolfWindowError';
 
-    // if ( Error.captureStackTrace )
-    //   Error.captureStackTrace(this, OverwolfWindowError)
+    // if (Error.captureStackTrace) {
+    //   Error.captureStackTrace(this, OverwolfWindowError);
+    // }
   }
 }

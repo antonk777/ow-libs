@@ -7,26 +7,32 @@ export class GameStatus {
   public isInFocus: boolean
   public isRunning: boolean
   public gameInfo: overwolf.games.RunningGameInfo | null
-  public onFocusChanged: SingleEvent<boolean>
-  public onRunningChanged: SingleEvent<boolean>
-  public onResolutionChanged: SingleEvent<overwolf.games.RunningGameInfo>
-  public onGameChanged: SingleEvent<overwolf.games.RunningGameInfo | null>
-  public onChanged: SingleEvent<GameStatus>
 
-  private lastGameID: number | null
-  private started: boolean
-  private startPromise: Promise<void>
-  private bound: GameStatus
+  public readonly onFocusChanged: SingleEvent<boolean>
+  public readonly onRunningChanged: SingleEvent<boolean>
+
+  public readonly onResolutionChanged:
+    SingleEvent<overwolf.games.RunningGameInfo>
+
+  public readonly onGameChanged:
+    SingleEvent<overwolf.games.RunningGameInfo | null>
+
+  public readonly onChanged: SingleEvent<GameStatus>
+
+  #lastGameID: number | null
+  #started: boolean
+  readonly #startPromise: Promise<void>
+  readonly #bound: GameStatus
 
   constructor() {
     this.isInFocus = false;
     this.isRunning = false;
     this.gameInfo = null;
 
-    this.lastGameID = null;
-    this.started = false;
-    this.startPromise = this.start();
-    this.bound = binder<GameStatus>(this);
+    this.#lastGameID = null;
+    this.#started = false;
+    this.#startPromise = this.start();
+    this.#bound = binder<GameStatus>(this);
 
     this.onFocusChanged = new SingleEvent();
     this.onRunningChanged = new SingleEvent();
@@ -36,12 +42,12 @@ export class GameStatus {
   }
 
   async start(): Promise<void> {
-    if (this.started) {
+    if (this.#started) {
       return;
     }
 
-    if (this.startPromise) {
-      await this.startPromise;
+    if (this.#startPromise) {
+      await this.#startPromise;
       return;
     }
 
@@ -55,17 +61,17 @@ export class GameStatus {
     this.isInFocus = !!(gameInfo && gameInfo.isInFocus);
     this.isRunning = !!(gameInfo && gameInfo.isRunning);
 
-    overwolf.games.onGameInfoUpdated.addListener(this.bound.onGameInfoUpdated);
+    overwolf.games.onGameInfoUpdated.addListener(this.#bound.onGameInfoUpdated);
 
-    this.started = true;
+    this.#started = true;
   }
 
   destroy(): void {
     overwolf.games.onGameInfoUpdated
-      .removeListener(this.bound.onGameInfoUpdated);
+      .removeListener(this.#bound.onGameInfoUpdated);
   }
 
-  onGameInfoUpdated(e: overwolf.games.GameInfoUpdatedEvent): void {
+  private onGameInfoUpdated(e: overwolf.games.GameInfoUpdatedEvent): void {
     const
       isInFocus = !!(e && e.gameInfo && e.gameInfo.isInFocus),
       isRunning = !!(e && e.gameInfo && e.gameInfo.isRunning),
@@ -116,10 +122,10 @@ export class GameStatus {
     }
   }
 
-  setGameInfo(gameInfo: overwolf.games.RunningGameInfo | null): void {
+  private setGameInfo(gameInfo: overwolf.games.RunningGameInfo | null): void {
     if (gameInfo && gameInfo.isRunning) {
       this.gameInfo = gameInfo;
-      this.lastGameID = Math.floor(gameInfo.id / 10);
+      this.#lastGameID = Math.floor(gameInfo.id / 10);
     } else {
       this.gameInfo = null;
     }
@@ -130,7 +136,10 @@ export class GameStatus {
   }
 
   get gameID(): number | null {
-    if (this.gameInfo) return Math.floor(this.gameInfo.id / 10);
-    return this.lastGameID;
+    if (this.gameInfo) {
+      return Math.floor(this.gameInfo.id / 10);
+    }
+
+    return this.#lastGameID;
   }
 }
