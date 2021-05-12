@@ -11,7 +11,7 @@ export class OverwolfWindow {
     this.#id = null;
   }
 
-  get isCurrent(): boolean {
+  private get isCurrent(): boolean {
     return (this.#name === null);
   }
 
@@ -23,7 +23,7 @@ export class OverwolfWindow {
     return this.obtainByName();
   }
 
-  async obtainCurrent(): Promise<overwolf.windows.WindowInfo> {
+  private async obtainCurrent(): Promise<overwolf.windows.WindowInfo> {
     const result: overwolf.windows.WindowResult = await new Promise(resolve => {
       overwolf.windows.getCurrentWindow(resolve);
     });
@@ -40,7 +40,7 @@ export class OverwolfWindow {
 
   }
 
-  async obtainByName(): Promise<overwolf.windows.WindowInfo> {
+  private async obtainByName(): Promise<overwolf.windows.WindowInfo> {
     const result: overwolf.windows.WindowResult = await new Promise(resolve => {
       overwolf.windows.obtainDeclaredWindow(this.#name as string, resolve);
     });
