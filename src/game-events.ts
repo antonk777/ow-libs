@@ -76,33 +76,31 @@ export class GameEvents extends EventEmitter<GameEvent> {
     const info = data.res as Record<string | number, any>;
 
     for (const category in info) {
-      if (category === 'features') {
-        continue;
-      }
+      if (category === 'features') continue;
 
       for (const key in info[category]) {
-        if (info[category].hasOwnProperty(key)) {
-          const path = `${category}.${key}`;
+        if (!info[category].hasOwnProperty(key)) continue;
 
-          let val = info[category][key];
+        const path = `${category}.${key}`;
 
-          if (
-            val !== undefined &&
-            (this.#state[path] === undefined || this.#state[path] !== val)
-          ) {
-            this.#state[path] = val;
+        let val = info[category][key];
 
-            try {
-              val = JSON.parse(val);
-            } catch (e) {
-              console.log('onGotInfo(): JSON parsing error:', e);
-            }
+        if (
+          val !== undefined &&
+          (this.#state[path] === undefined || this.#state[path] !== val)
+        ) {
+          this.#state[path] = val;
 
-            const e: GameEvent = { path, category, key, val };
-
-            this.emit(path, e);
-            this.emit('*', e);
+          try {
+            val = JSON.parse(val);
+          } catch (e) {
+            console.log('onGotInfo(): JSON parsing error:', e);
           }
+
+          const e: GameEvent = { path, category, key, val };
+
+          this.emit(path, e);
+          this.emit('*', e);
         }
       }
     }
@@ -114,31 +112,31 @@ export class GameEvents extends EventEmitter<GameEvent> {
     const info = data.info as Record<string | number, any>;
 
     for (const category in info) {
-      if (info.hasOwnProperty(category)) {
-        for (const key in info[category]) {
-          if (info[category].hasOwnProperty(key)) {
-            const path = `${category}.${key}`;
+      if (!info.hasOwnProperty(category)) continue;
 
-            let val = info[category][key];
+      for (const key in info[category]) {
+        if (!info[category].hasOwnProperty(key)) continue;
 
-            if (
-              val !== undefined &&
-              (this.#state[path] === undefined || this.#state[path] !== val)
-            ) {
-              this.#state[path] = val;
+        const path = `${category}.${key}`;
 
-              try {
-                val = JSON.parse(val);
-              } catch (e) {
-                console.log('onInfoUpdate(): JSON parsing error:', e);
-              }
+        let val = info[category][key];
 
-              const e: GameEvent = { path, category, key, val };
+        if (
+          val !== undefined &&
+          (this.#state[path] === undefined || this.#state[path] !== val)
+        ) {
+          this.#state[path] = val;
 
-              this.emit(path, e);
-              this.emit('*', e);
-            }
+          try {
+            val = JSON.parse(val);
+          } catch (e) {
+            console.log('onInfoUpdate(): JSON parsing error:', e);
           }
+
+          const e: GameEvent = { path, category, key, val };
+
+          this.emit(path, e);
+          this.emit('*', e);
         }
       }
     }
@@ -175,8 +173,8 @@ export class GameEvents extends EventEmitter<GameEvent> {
     }
   }
 
-  private setRequiredFeaturesPromise():
-  Promise<overwolf.games.events.SetRequiredFeaturesResult> {
+  private setRequiredFeaturesPromise()
+  : Promise<overwolf.games.events.SetRequiredFeaturesResult> {
     return new Promise(resolve => {
       overwolf.games.events.setRequiredFeatures(this.#features, resolve);
     });

@@ -2,21 +2,25 @@
 
 import { binder } from './binder';
 import { SingleEvent } from './single-event';
+import { objectCopy } from './utils';
+
+type LauncherInfo = overwolf.games.launchers.LauncherInfo | null
 
 export class LauncherStatus {
-  public isInFocus: boolean
-  public launcherInfo: overwolf.games.launchers.LauncherInfo | null
+  #isInFocus: boolean
+  #launcherInfo: LauncherInfo
+
+  readonly #bound: LauncherStatus
+  #started: boolean
+  readonly #startPromise: Promise<void>
+
   public readonly onFocusChanged: SingleEvent<boolean>
   public readonly onRunningChanged: SingleEvent<boolean>
   public readonly onChanged: SingleEvent<LauncherStatus>
 
-  readonly #bound: LauncherStatus
-  readonly #startPromise: Promise<void>
-  #started: boolean
-
   constructor() {
-    this.launcherInfo = null;
-    this.isInFocus = false;
+    this.#launcherInfo = null;
+    this.#isInFocus = false;
 
     this.#bound = binder<LauncherStatus>(this);
     this.#started = false;
@@ -28,7 +32,15 @@ export class LauncherStatus {
   }
 
   get isRunning(): boolean {
-    return !!this.launcherInfo;
+    return !!this.#launcherInfo;
+  }
+
+  get isInFocus(): boolean {
+    return this.#isInFocus;
+  }
+
+  get launcherInfo(): LauncherInfo {
+    return objectCopy<LauncherInfo>(this.#launcherInfo);
   }
 
   async start(): Promise<void> {
@@ -52,12 +64,12 @@ export class LauncherStatus {
       launchersInfo.launchers &&
       launchersInfo.launchers.length
     ) {
-      this.launcherInfo = launchersInfo.launchers[0];
+      this.#launcherInfo = launchersInfo.launchers[0];
     } else {
-      this.launcherInfo = null;
+      this.#launcherInfo = null;
     }
 
-    this.isInFocus = !!(this.launcherInfo && this.launcherInfo.isInFocus);
+    this.#isInFocus = !!(this.#launcherInfo && this.#launcherInfo.isInFocus);
 
     overwolf.games.launchers.onLaunched
       .addListener(this.#bound.onLauncherLaunched);
@@ -81,13 +93,13 @@ export class LauncherStatus {
   onLauncherLaunched(info: overwolf.games.launchers.LauncherInfo): void {
     // console.log('onLauncherLaunched', info)
 
-    const isInFocusChanged = (info.isInFocus !== this.isInFocus);
+    const isInFocusChanged = (info.isInFocus !== this.#isInFocus);
 
-    this.launcherInfo = info;
+    this.#launcherInfo = info;
 
     if (isInFocusChanged) {
-      this.isInFocus = info.isInFocus;
-      this.onFocusChanged.callListener(this.isInFocus);
+      this.#isInFocus = info.isInFocus;
+      this.onFocusChanged.callListener(this.#isInFocus);
     }
 
     this.onRunningChanged.callListener(true);
@@ -97,13 +109,13 @@ export class LauncherStatus {
   onLauncherTerminated(): void {
     // console.log('onLauncherTerminated')
 
-    const isInFocusChanged = this.isInFocus;
+    const isInFocusChanged = this.#isInFocus;
 
-    this.launcherInfo = null;
-    this.isInFocus = false;
+    this.#launcherInfo = null;
+    this.#isInFocus = false;
 
     if (isInFocusChanged) {
-      this.onFocusChanged.callListener(this.isInFocus);
+      this.onFocusChanged.callListener(this.#isInFocus);
     }
 
     this.onRunningChanged.callListener(false);
@@ -113,24 +125,23 @@ export class LauncherStatus {
   onLauncherInfoUpdated({ info }: overwolf.games.launchers.UpdatedEvent): void {
     // console.log('onLauncherInfoUpdated', info, changeType)
 
-    const isInFocusChanged = (info.isInFocus !== this.isInFocus);
+    const isInFocusChanged = (info.isInFocus !== this.#isInFocus);
 
-    this.launcherInfo = info;
+    this.#launcherInfo = info;
 
     if (isInFocusChanged) {
-      this.isInFocus = info.isInFocus;
-      this.onFocusChanged.callListener(this.isInFocus);
+      this.#isInFocus = info.isInFocus;
+      this.onFocusChanged.callListener(this.#isInFocus);
     }
 
     this.onChanged.callListener(this);
   }
 
   get launcherID(): number | null {
-    if (this.launcherInfo && this.launcherInfo.classId) {
-      return this.launcherInfo.classId;
+    if (this.#launcherInfo && this.#launcherInfo.classId) {
+      return this.#launcherInfo.classId;
     }
 
     return null;
-
   }
 }

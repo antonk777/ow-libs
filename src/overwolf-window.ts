@@ -37,7 +37,6 @@ export class OverwolfWindow {
     this.#id = null;
 
     throw new OverwolfWindowError({ result });
-
   }
 
   private async obtainByName(): Promise<overwolf.windows.WindowInfo> {

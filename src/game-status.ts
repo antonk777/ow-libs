@@ -52,9 +52,7 @@ export class GameStatus {
     }
 
     const gameInfo: overwolf.games.GetRunningGameInfoResult =
-      await new Promise(resolve => {
-        overwolf.games.getRunningGameInfo(resolve);
-      });
+      await new Promise(resolve => overwolf.games.getRunningGameInfo(resolve));
 
     this.setGameInfo(gameInfo);
 

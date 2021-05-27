@@ -6,7 +6,7 @@ export function binder<T extends Record<string, any>>(target: T): T {
   const methods: MethodsRecord = {};
 
   return new Proxy<T>(target, {
-    has(_targ, prop: string) {
+    has(_target, prop: string) {
       return methods.hasOwnProperty(prop);
     },
     get(targ, prop: string) {
@@ -26,7 +26,7 @@ export function binder<T extends Record<string, any>>(target: T): T {
     set() {
       return true;
     },
-    deleteProperty(_targ, prop: string) {
+    deleteProperty(_target, prop: string) {
       delete methods[prop];
       return true;
     },

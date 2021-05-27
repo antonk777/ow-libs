@@ -1,8 +1,6 @@
-/* global overwolf */
+import { EventEmitter, Utils, WindowTunnel } from './';
 
-import { EventEmitter, Utils } from './';
-
-type MapByString = {
+type RecordByString = {
   [key: string]: any
 }
 
@@ -13,7 +11,7 @@ interface StateSubscription<T> {
 
 export type State<T> = T & StateSubscription<T>
 
-class StateManager<T extends MapByString> extends EventEmitter<T> {
+class StateManager<T extends RecordByString> extends EventEmitter<T> {
   readonly name: string
   readonly #state: T
   readonly #persistent: boolean
@@ -55,7 +53,7 @@ class StateManager<T extends MapByString> extends EventEmitter<T> {
   }
 
   set(key: string, value: any): void {
-    if (!(this.#state as MapByString).hasOwnProperty(key)) {
+    if (!(this.#state as RecordByString).hasOwnProperty(key)) {
       throw new Error(`Property ${key} does not exist in state`);
     }
 
@@ -65,7 +63,7 @@ class StateManager<T extends MapByString> extends EventEmitter<T> {
       ? StateManager.fastStringify(value)
       : undefined;
 
-    (this.#state as MapByString)[key] = shallBeStringified
+    (this.#state as RecordByString)[key] = shallBeStringified
       ? stringified
       : value;
 
@@ -93,9 +91,9 @@ class StateManager<T extends MapByString> extends EventEmitter<T> {
           value = StateManager.fastParse(localStorage[key]);
 
         if (StateManager.shouldBeStringified(value)) {
-          (state as MapByString)[stateKey] = stringified;
+          (state as RecordByString)[stateKey] = stringified;
         } else {
-          (state as MapByString)[stateKey] = value;
+          (state as RecordByString)[stateKey] = value;
         }
       }
     }
@@ -141,11 +139,14 @@ class StateManager<T extends MapByString> extends EventEmitter<T> {
 }
 
 function makeGlobalStateName(name: string): string {
-  return `OverwolfGlobalState/${name}`;
+  return `GlobalState/${name}`;
 }
 
-export function makeState<T extends MapByString>
-(name: string, initialState: T, persistent = false): State<T> {
+export function makeState<T extends RecordByString>(
+  name: string,
+  initialState: T,
+  persistent = false
+): State<T> {
   const manager = new StateManager(name, initialState, persistent);
 
   const store = new Proxy<StateManager<T>>(manager, {
@@ -179,15 +180,13 @@ export function makeState<T extends MapByString>
     ownKeys() {
       return [];
     }
-  });
+  }) as unknown as State<T>;
 
-  (window as MapByString)[makeGlobalStateName(name)] = store;
+  WindowTunnel.set<State<T>>(makeGlobalStateName(name), store);
 
-  return store as unknown as State<T>;
+  return store;
 }
 
 export function makeStateClient<T>(name: string): State<T> {
-  const win = overwolf.windows.getMainWindow() as MapByString;
-
-  return win[makeGlobalStateName(name)] as State<T>;
+  return WindowTunnel.get<State<T>>(makeGlobalStateName(name));
 }
