@@ -5,6 +5,10 @@
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
   "author": "Anton Kulakov<anton.kulakov@overwolf.com>",
+  "repository": {
+    "type" : "git",
+    "url" : "https://github.com/antonk777/ow-libs.git"
+  },
   "license": "MIT",
   "scripts": {
     "lint": "eslint src/**",
