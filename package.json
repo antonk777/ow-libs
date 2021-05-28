@@ -1,6 +1,6 @@
 {
   "name": "ow-libs",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Libraries for working with Overwolf API",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
