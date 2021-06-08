@@ -1,5 +1,3 @@
-/* global overwolf*/
-
 const NOT_CURRENT_WINDOW = 'Method does not support windows other than current';
 
 export class OverwolfWindow {

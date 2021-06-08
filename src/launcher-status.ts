@@ -1,34 +1,34 @@
-/* global overwolf*/
-
 import { binder } from './binder';
-import { SingleEvent } from './single-event';
+import { EventEmitter } from './event-emitter';
 import { objectCopy } from './utils';
 
 type LauncherInfo = overwolf.games.launchers.LauncherInfo | null
 
-export class LauncherStatus {
+type LauncherStatusEventTypes = {
+  focus: boolean,
+  running: boolean,
+  changed: LauncherInfo
+}
+
+export class LauncherStatus extends EventEmitter<LauncherStatusEventTypes> {
+  readonly #bound: LauncherStatus
+
   #isInFocus: boolean
   #launcherInfo: LauncherInfo
 
-  readonly #bound: LauncherStatus
   #started: boolean
   readonly #startPromise: Promise<void>
 
-  public readonly onFocusChanged: SingleEvent<boolean>
-  public readonly onRunningChanged: SingleEvent<boolean>
-  public readonly onChanged: SingleEvent<LauncherStatus>
-
   constructor() {
+    super();
+
+    this.#bound = binder<LauncherStatus>(this);
+
     this.#launcherInfo = null;
     this.#isInFocus = false;
 
-    this.#bound = binder<LauncherStatus>(this);
     this.#started = false;
     this.#startPromise = this.start();
-
-    this.onFocusChanged = new SingleEvent();
-    this.onRunningChanged = new SingleEvent();
-    this.onChanged = new SingleEvent();
   }
 
   get isRunning(): boolean {
@@ -72,6 +72,13 @@ export class LauncherStatus {
     this.#isInFocus = !!(this.#launcherInfo && this.#launcherInfo.isInFocus);
 
     overwolf.games.launchers.onLaunched
+      .removeListener(this.#bound.onLauncherLaunched);
+    overwolf.games.launchers.onTerminated
+      .removeListener(this.#bound.onLauncherTerminated);
+    overwolf.games.launchers.onUpdated
+      .removeListener(this.#bound.onLauncherInfoUpdated);
+
+    overwolf.games.launchers.onLaunched
       .addListener(this.#bound.onLauncherLaunched);
     overwolf.games.launchers.onTerminated
       .addListener(this.#bound.onLauncherTerminated);
@@ -99,11 +106,11 @@ export class LauncherStatus {
 
     if (isInFocusChanged) {
       this.#isInFocus = info.isInFocus;
-      this.onFocusChanged.callListener(this.#isInFocus);
+      this.emit('focus', info.isInFocus);
     }
 
-    this.onRunningChanged.callListener(true);
-    this.onChanged.callListener(this);
+    this.emit('running', true);
+    this.emit('changed', this.launcherInfo);
   }
 
   onLauncherTerminated(): void {
@@ -115,11 +122,11 @@ export class LauncherStatus {
     this.#isInFocus = false;
 
     if (isInFocusChanged) {
-      this.onFocusChanged.callListener(this.#isInFocus);
+      this.emit('focus', false);
     }
 
-    this.onRunningChanged.callListener(false);
-    this.onChanged.callListener(this);
+    this.emit('running', false);
+    this.emit('changed', this.launcherInfo);
   }
 
   onLauncherInfoUpdated({ info }: overwolf.games.launchers.UpdatedEvent): void {
@@ -131,10 +138,10 @@ export class LauncherStatus {
 
     if (isInFocusChanged) {
       this.#isInFocus = info.isInFocus;
-      this.onFocusChanged.callListener(this.#isInFocus);
+      this.emit('focus', info.isInFocus);
     }
 
-    this.onChanged.callListener(this);
+    this.emit('changed', this.launcherInfo);
   }
 
   get launcherID(): number | null {

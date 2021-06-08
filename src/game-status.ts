@@ -1,30 +1,31 @@
-/* global overwolf*/
-
 import { binder } from './binder';
-import { SingleEvent } from './single-event';
+import { EventEmitter } from './event-emitter';
 
-export class GameStatus {
+type GameStatusEventTypes = {
+  focus: boolean,
+  running: boolean,
+  resolutionChanged: overwolf.games.RunningGameInfo | null,
+  gameChanged: overwolf.games.RunningGameInfo | null,
+  changed: overwolf.games.RunningGameInfo | null,
+}
+
+export class GameStatus extends EventEmitter<GameStatusEventTypes> {
+  readonly #bound: GameStatus
+
   public isInFocus: boolean
   public isRunning: boolean
   public gameInfo: overwolf.games.RunningGameInfo | null
 
-  public readonly onFocusChanged: SingleEvent<boolean>
-  public readonly onRunningChanged: SingleEvent<boolean>
-
-  public readonly onResolutionChanged:
-    SingleEvent<overwolf.games.RunningGameInfo>
-
-  public readonly onGameChanged:
-    SingleEvent<overwolf.games.RunningGameInfo | null>
-
-  public readonly onChanged: SingleEvent<GameStatus>
-
   #lastGameID: number | null
   #started: boolean
+
   readonly #startPromise: Promise<void>
-  readonly #bound: GameStatus
 
   constructor() {
+    super();
+
+    this.#bound = binder<GameStatus>(this);
+
     this.isInFocus = false;
     this.isRunning = false;
     this.gameInfo = null;
@@ -32,13 +33,6 @@ export class GameStatus {
     this.#lastGameID = null;
     this.#started = false;
     this.#startPromise = this.start();
-    this.#bound = binder<GameStatus>(this);
-
-    this.onFocusChanged = new SingleEvent();
-    this.onRunningChanged = new SingleEvent();
-    this.onResolutionChanged = new SingleEvent();
-    this.onGameChanged = new SingleEvent();
-    this.onChanged = new SingleEvent();
   }
 
   async start(): Promise<void> {
@@ -58,6 +52,9 @@ export class GameStatus {
 
     this.isInFocus = !!(gameInfo && gameInfo.isInFocus);
     this.isRunning = !!(gameInfo && gameInfo.isRunning);
+
+    overwolf.games.onGameInfoUpdated
+      .removeListener(this.#bound.onGameInfoUpdated);
 
     overwolf.games.onGameInfoUpdated.addListener(this.#bound.onGameInfoUpdated);
 
@@ -91,23 +88,19 @@ export class GameStatus {
     }
 
     if (isInFocusChanged) {
-      this.onFocusChanged.callListener(isInFocus);
+      this.emit('focus', isInFocus);
     }
 
     if (isRunningChanged) {
-      this.onRunningChanged.callListener(isInFocus);
+      this.emit('running', isInFocus);
     }
 
     if (e && e.gameInfo && e.resolutionChanged) {
-      this.onResolutionChanged.callListener(e.gameInfo);
+      this.emit('resolutionChanged', e.gameInfo);
     }
 
     if (e.gameChanged) {
-      if (e && e.gameInfo) {
-        this.onGameChanged.callListener(e.gameInfo);
-      } else {
-        this.onGameChanged.callListener(null);
-      }
+      this.emit('gameChanged', e.gameInfo || null);
     }
 
     if (
@@ -116,7 +109,7 @@ export class GameStatus {
       e.resolutionChanged ||
       e.gameChanged
     ) {
-      this.onChanged.callListener(this);
+      this.emit('changed', e.gameInfo || null);
     }
   }
 

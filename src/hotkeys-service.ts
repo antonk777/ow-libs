@@ -1,5 +1,5 @@
 import { binder } from './binder';
-import { SingleEvent } from './single-event';
+import { EventEmitter } from './event-emitter';
 
 type GetAssignedHotkeyResult = overwolf.settings.hotkeys.GetAssignedHotkeyResult
 
@@ -18,13 +18,87 @@ export type HotkeyChangedEvent = {
 
 export type HotkeyName = string;
 
-export class HotkeyService {
-  #hotkeys: HotkeyStore = {};
-  #bound = binder<HotkeyService>(this);
-  public readonly onHotkeyChanged = new SingleEvent<HotkeyChangedEvent>();
-  public readonly onHotkeyPressed = new SingleEvent<HotkeyName>();
+type HotkeyEventTypes = {
+  changed: HotkeyChangedEvent,
+  pressed: HotkeyName
+}
 
-  public getHotkeyBinding(hotkeyName: string, gameId: number): string | null {
+export class HotkeyService extends EventEmitter<HotkeyEventTypes> {
+  #bound = binder<HotkeyService>(this);
+
+  #hotkeys: HotkeyStore;
+
+  #started: boolean
+  readonly #startPromise: Promise<void>
+
+  constructor() {
+    super();
+
+    this.#bound = binder<HotkeyService>(this);
+
+    this.#hotkeys = {};
+
+    this.#started = false;
+    this.#startPromise = this.start();
+  }
+
+  async start(): Promise<void> {
+    if (this.#started) {
+      return;
+    }
+
+    if (this.#startPromise) {
+      await this.#startPromise;
+      return;
+    }
+
+    overwolf.settings.hotkeys.onChanged
+      .removeListener(this.#bound.handleHotkeyChanged);
+
+    overwolf.settings.hotkeys.onPressed
+      .removeListener(this.#bound.handleHotkeyPressed);
+
+    overwolf.settings.hotkeys.onChanged
+      .addListener(this.#bound.handleHotkeyChanged);
+
+    overwolf.settings.hotkeys.onPressed
+      .addListener(this.#bound.handleHotkeyPressed);
+
+    await this.updateHotkeys();
+
+    for (const name in this.#hotkeys) {
+      if (this.#hotkeys.hasOwnProperty(name)) {
+        this.emit('changed', {
+          name,
+          binding: this.#hotkeys[name].global
+        });
+
+        for (const gameIdStr in this.#hotkeys[name].games) {
+          if (this.#hotkeys[name].games.hasOwnProperty(name)) {
+            const gameId = parseInt(gameIdStr, 10);
+
+            this.emit('changed', {
+              name,
+              gameId,
+              binding: this.#hotkeys[name].games[gameIdStr]
+            });
+          }
+        }
+      }
+    }
+
+    this.#started = true;
+  }
+
+  destroy(): void {
+    overwolf.settings.hotkeys.onChanged
+      .removeListener(this.#bound.handleHotkeyChanged);
+
+    overwolf.settings.hotkeys.onPressed
+      .removeListener(this.#bound.handleHotkeyPressed);
+  }
+
+  getHotkeyBinding(hotkeyName: string, gameId: number): string | null {
     if (this.#hotkeys[hotkeyName]) {
       if (
         this.#hotkeys[hotkeyName].games &&
@@ -39,37 +113,6 @@ export class HotkeyService {
     }
 
     return null;
-  }
-
-  public async start(): Promise<void> {
-    overwolf.settings.hotkeys.onChanged
-      .addListener(this.#bound.handleHotkeyChanged);
-
-    overwolf.settings.hotkeys.onPressed
-      .addListener(this.#bound.handleHotkeyPressed);
-
-    await this.updateHotkeys();
-
-    for (const name in this.#hotkeys) {
-      if (this.#hotkeys.hasOwnProperty(name)) {
-        this.onHotkeyChanged.callListener({
-          name,
-          binding: this.#hotkeys[name].global
-        });
-
-        for (const gameIdStr in this.#hotkeys[name].games) {
-          if (this.#hotkeys[name].games.hasOwnProperty(name)) {
-            const gameId = parseInt(gameIdStr, 10);
-
-            this.onHotkeyChanged.callListener({
-              name,
-              gameId,
-              binding: this.#hotkeys[name].games[gameIdStr]
-            });
-          }
-        }
-      }
-    }
   }
 
   private getHotkeys(): Promise<GetAssignedHotkeyResult> {
@@ -133,7 +176,7 @@ export class HotkeyService {
       publicEvent.gameId = event.gameId;
     }
 
-    this.onHotkeyChanged.callListener(publicEvent);
+    this.emit('changed', publicEvent);
   }
 
   private handleHotkeyPressed(
@@ -141,6 +184,6 @@ export class HotkeyService {
   ): void {
     console.log('HotkeyService.handleHotkeyPressed()', event.name);
 
-    this.onHotkeyPressed.callListener(event.name);
+    this.emit('pressed', event.name);
   }
 }

@@ -1,5 +1,3 @@
-/* global overwolf*/
-
 export class OverwolfPlugin {
   readonly #pluginName: string
   #plugin: any = null
@@ -7,6 +5,10 @@ export class OverwolfPlugin {
 
   constructor(pluginName: string) {
     this.#pluginName = pluginName;
+  }
+
+  get plugin(): any {
+    return this.#plugin;
   }
 
   private _loadPluginPromise(): Promise<any> {

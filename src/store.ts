@@ -1,140 +1,107 @@
 import { EventEmitter, Utils, WindowTunnel } from './';
 
-type RecordByString = {
-  [key: string]: any
-}
-
-interface StateSubscription<T> {
-  on: EventEmitter<T>['on']
-  off: EventEmitter<T>['off']
+interface StateSubscription<StateMap> {
+  on: EventEmitter<StateMap>['on']
+  off: EventEmitter<StateMap>['off']
 }
 
 export type State<T> = T & StateSubscription<T>
 
-class StateManager<T extends RecordByString> extends EventEmitter<T> {
+class StateManager<StateMap extends Record<string, any>> extends
+  EventEmitter<StateMap> {
+
   readonly name: string
-  readonly #state: T
+  // readonly #initialState: StateMap
+  readonly #state: StateMap
   readonly #persistent: boolean
   readonly #localStoragePrefix: string
 
-  constructor(name: string, initialState: T, persistent = false) {
+  constructor(name: string, initialState: StateMap, persistent = false) {
     super();
 
     this.name = name;
     this.#persistent = persistent;
     this.#localStoragePrefix = `${name}/`;
+    // this.#initialState = initialState;
 
     if (this.#persistent) {
-      this.#state = StateManager.hydratePersistentState<T>(
+      this.#state = StateManager.hydratePersistentState<StateMap>(
         initialState,
         this.#localStoragePrefix
       );
     } else {
-      this.#state = Utils.objectCopy<T>(initialState);
+      this.#state = Utils.objectCopy<StateMap>(initialState);
     }
-  }
-
-  keys(): string[] {
-    return Object.keys(this.#state);
   }
 
   has(key: string): boolean {
     return (this.#state[key] !== undefined);
   }
 
-  get(key: string): void {
+  get<Key extends keyof StateMap>(key: Key): StateMap[Key] {
     const value = this.#state[key];
 
-    if (typeof value === 'string' && value !== undefined) {
-      return StateManager.fastParse(value);
+    if (typeof value === 'object' && value !== null) {
+      return Utils.objectCopy(value);
     }
 
     return value;
   }
 
-  set(key: string, value: any): void {
-    if (!(this.#state as RecordByString).hasOwnProperty(key)) {
-      throw new Error(`Property ${key} does not exist in state`);
-    }
-
-    const shallBeStringified = StateManager.shouldBeStringified(value);
-
-    const stringified = (shallBeStringified || this.#persistent)
-      ? StateManager.fastStringify(value)
-      : undefined;
-
-    (this.#state as RecordByString)[key] = shallBeStringified
-      ? stringified
-      : value;
+  private _setObject<Key extends keyof StateMap>(
+    key: Key,
+    value: StateMap[Key]
+  ): void {
+    const stringified = JSON.stringify(value);
 
     if (this.#persistent) {
       localStorage[this.#localStoragePrefix + key] = stringified;
     }
 
-    this.emit(key, this.#state);
-    this.emit('*', this.#state);
+    const copy = JSON.parse(stringified) as StateMap[Key];
+
+    this.#state[key] = copy;
+    this.emit(key, copy);
   }
 
-  private static hydratePersistentState<T>(initialState: T, prefix: string): T {
+  private _setPrimitive<Key extends keyof StateMap>(
+    key: Key,
+    value: StateMap[Key]
+  ): void {
+    if (this.#persistent) {
+      localStorage[this.#localStoragePrefix + key] = JSON.stringify(value);
+    }
+
+    this.#state[key] = value;
+    this.emit(key, value);
+  }
+
+  set<Key extends keyof StateMap>(key: Key, value: StateMap[Key]): void {
+    if (typeof value === 'object' && value !== null) {
+      this._setObject(key, value);
+    } else {
+      this._setPrimitive(key, value);
+    }
+  }
+
+  private static hydratePersistentState<T extends Record<string, any>>(
+    initialState: T,
+    prefix: string
+  ): T {
     const
       state = Utils.objectCopy<T>(initialState),
       prefixLength = prefix.length;
 
     for (const key in localStorage) {
-      if (
-        key.length > prefixLength &&
-        key.startsWith(prefix)
-      ) {
-        const
-          stringified: string = localStorage[key],
-          stateKey = key.substr(prefixLength),
-          value = StateManager.fastParse(localStorage[key]);
+      if (key.length > prefixLength && key.startsWith(prefix)) {
+        const stateKey = key.substr(prefixLength);
 
-        if (StateManager.shouldBeStringified(value)) {
-          (state as RecordByString)[stateKey] = stringified;
-        } else {
-          (state as RecordByString)[stateKey] = value;
-        }
+        (state as Record<string, any>)[stateKey] =
+          JSON.parse(localStorage[key]);
       }
     }
 
     return state;
-  }
-
-  private static fastParse(val?: string): any {
-    switch (val) {
-      case 'true':
-        return true;
-      case 'false':
-        return false;
-      case 'null':
-        return null;
-      case 'undefined':
-      case undefined:
-        return undefined;
-      default:
-        return JSON.parse(val);
-    }
-  }
-
-  private static fastStringify(val: any): string {
-    switch (val) {
-      case true:
-        return 'true';
-      case false:
-        return 'false';
-      case null:
-        return 'null';
-      case undefined:
-        return 'undefined';
-      default:
-        return JSON.stringify(val);
-    }
-  }
-
-  private static shouldBeStringified(val: any): boolean {
-    const type = typeof val;
-    return (type === 'string' || (type === 'object' && val !== null));
   }
 }
 
@@ -142,14 +109,14 @@ function makeGlobalStateName(name: string): string {
   return `GlobalState/${name}`;
 }
 
-export function makeState<T extends RecordByString>(
+export function makeState<StateMap extends Record<string, any>>(
   name: string,
-  initialState: T,
+  initialState: StateMap,
   persistent = false
-): State<T> {
+): State<StateMap> {
   const manager = new StateManager(name, initialState, persistent);
 
-  const store = new Proxy<StateManager<T>>(manager, {
+  const store = new Proxy<StateManager<StateMap>>(manager, {
     has(target, key: string) {
       return target.has(key);
     },
@@ -180,13 +147,13 @@ export function makeState<T extends RecordByString>(
     ownKeys() {
       return [];
     }
-  }) as unknown as State<T>;
+  }) as unknown as State<StateMap>;
 
-  WindowTunnel.set<State<T>>(makeGlobalStateName(name), store);
+  WindowTunnel.set(makeGlobalStateName(name), store);
 
   return store;
 }
 
-export function makeStateClient<T>(name: string): State<T> {
-  return WindowTunnel.get<State<T>>(makeGlobalStateName(name));
+export function makeStateClient<StateMap>(name: string): State<StateMap> {
+  return WindowTunnel.get<State<StateMap>>(makeGlobalStateName(name));
 }

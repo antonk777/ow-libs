@@ -1,5 +1,3 @@
-/* global overwolf*/
-
 import { binder } from './binder';
 import { EventEmitter, Utils } from './';
 import type { GameStatus } from './';
@@ -11,30 +9,31 @@ export type GameEvent = {
   val: any
 }
 
-export class GameEvents extends EventEmitter<GameEvent> {
-  readonly #features: string[]
-  readonly #state: { [key: string]: any }
-  readonly #retries: number
+type GameEventTypes = {
+  [key: string]: GameEvent
+}
+
+export class GameEvents extends EventEmitter<GameEventTypes> {
   readonly #bound: GameEvents
+
+  readonly #features: string[]
+  readonly #state: Record<string, any>
+  readonly #retries: number
 
   constructor(features: string[]) {
     super();
 
+    this.#bound = binder<GameEvents>(this);
+
     this.#features = features;
     this.#state = {};
     this.#retries = 60;
-
-    this.#bound = binder<GameEvents>(this);
-
-    overwolf.games.events.onError.addListener(this.#bound.onError);
-  }
-
-  destroy(): void {
-    this.removeListeners();
-    overwolf.games.events.onError.removeListener(this.#bound.onError);
   }
 
   async start(gameStatus: GameStatus): Promise<void> {
+    overwolf.games.events.onError.removeListener(this.#bound.onError);
+    overwolf.games.events.onError.addListener(this.#bound.onError);
+
     this.stop();
 
     const result = await this.setRequiredFeatures(gameStatus);
@@ -53,6 +52,11 @@ export class GameEvents extends EventEmitter<GameEvent> {
     }
 
     this.removeListeners();
+  }
+
+  destroy(): void {
+    this.removeListeners();
+    overwolf.games.events.onError.removeListener(this.#bound.onError);
   }
 
   private removeListeners(): void {
@@ -181,7 +185,8 @@ export class GameEvents extends EventEmitter<GameEvent> {
   }
 
   async setRequiredFeatures(gameStatus: GameStatus): Promise<boolean> {
-    let tries = 0,
+    let
+      tries = 0,
       result: overwolf.games.events.SetRequiredFeaturesResult | null = null;
 
     while (tries < this.#retries && gameStatus.isRunning) {
