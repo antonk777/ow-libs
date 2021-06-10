@@ -29,7 +29,7 @@ export class HotkeyService extends EventEmitter<HotkeyEventTypes> {
   #hotkeys: HotkeyStore;
 
   #started: boolean
-  readonly #startPromise: Promise<void>
+  readonly #startPromise: Promise<void> | null
 
   constructor() {
     super();

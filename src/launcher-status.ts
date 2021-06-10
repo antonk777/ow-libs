@@ -17,7 +17,7 @@ export class LauncherStatus extends EventEmitter<LauncherStatusEventTypes> {
   #launcherInfo: LauncherInfo
 
   #started: boolean
-  readonly #startPromise: Promise<void>
+  readonly #startPromise: Promise<void> | null
 
   constructor() {
     super();

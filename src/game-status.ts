@@ -19,7 +19,7 @@ export class GameStatus extends EventEmitter<GameStatusEventTypes> {
   #lastGameID: number | null
   #started: boolean
 
-  readonly #startPromise: Promise<void>
+  readonly #startPromise: Promise<void> | null
 
   constructor() {
     super();

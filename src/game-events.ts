@@ -17,34 +17,71 @@ export class GameEvents extends EventEmitter<GameEventTypes> {
   readonly #bound: GameEvents
 
   readonly #features: string[]
+  readonly #gameStatus: GameStatus
+
   readonly #state: Record<string, any>
   readonly #retries: number
 
-  constructor(features: string[]) {
+  #running: boolean
+  #startingPromise: Promise<void> | null
+
+  constructor(features: string[], gameStatus: GameStatus) {
     super();
 
     this.#bound = binder<GameEvents>(this);
 
     this.#features = features;
+    this.#gameStatus = gameStatus;
+
     this.#state = {};
-    this.#retries = 60;
+    this.#retries = 25;
+
+    this.#running = false;
+    this.#startingPromise = null;
   }
 
-  async start(gameStatus: GameStatus): Promise<void> {
-    overwolf.games.events.onError.removeListener(this.#bound.onError);
-    overwolf.games.events.onError.addListener(this.#bound.onError);
+  async start(): Promise<void> {
+    if (this.#running) {
+      return;
+    }
 
-    this.stop();
+    if (this.#startingPromise) {
+      return this.#startingPromise;
+    }
 
-    const result = await this.setRequiredFeatures(gameStatus);
+    this.#startingPromise = this._start();
 
-    if (result) {
+    await this.#startingPromise;
+
+    this.#startingPromise = null;
+  }
+
+  private async _start(): Promise<void> {
+    this._stop();
+
+    const success = await this.setRequiredFeatures();
+
+    if (success) {
       overwolf.games.events.getInfo(this.#bound.onGotInfo);
       this.setListeners();
     }
   }
 
-  stop(): void {
+  async stop(): Promise<void> {
+    if (!this.#running) {
+      return;
+    }
+
+    if (this.#startingPromise) {
+      await this.#startingPromise;
+      this.#startingPromise = null;
+    }
+
+    this._stop();
+    this.#running = false;
+  }
+
+  private _stop(): void {
     for (const key in this.#state) {
       if (this.#state.hasOwnProperty(key)) {
         delete this.#state[key];
@@ -56,28 +93,31 @@ export class GameEvents extends EventEmitter<GameEventTypes> {
 
   destroy(): void {
     this.removeListeners();
-    overwolf.games.events.onError.removeListener(this.#bound.onError);
+    this.#running = false;
   }
 
   private removeListeners(): void {
+    overwolf.games.events.onError.removeListener(this.#bound.onError);
     overwolf.games.events.onInfoUpdates2
       .removeListener(this.#bound.onInfoUpdate);
     overwolf.games.events.onNewEvents.removeListener(this.#bound.onNewEvent);
   }
 
   private setListeners(): void {
+    this.removeListeners();
+    overwolf.games.events.onError.addListener(this.#bound.onError);
     overwolf.games.events.onInfoUpdates2.addListener(this.#bound.onInfoUpdate);
     overwolf.games.events.onNewEvents.addListener(this.#bound.onNewEvent);
   }
 
   private onError(err: overwolf.games.events.ErrorEvent): void {
-    console.log('gameEvents: error:', err);
+    console.log('GameEvents: error:', err);
   }
 
   private onGotInfo(data: overwolf.games.events.GetInfoResult): void {
     if (!data || !data.success || !data.res) return;
 
-    const info = data.res as Record<string | number, any>;
+    const info = data.res as Record<string, any>;
 
     for (const category in info) {
       if (category === 'features') continue;
@@ -113,7 +153,7 @@ export class GameEvents extends EventEmitter<GameEventTypes> {
   private onInfoUpdate(data: overwolf.games.events.InfoUpdates2Event): void {
     if (!data || !data.info) return;
 
-    const info = data.info as Record<string | number, any>;
+    const info = data.info as Record<string, any>;
 
     for (const category in info) {
       if (!info.hasOwnProperty(category)) continue;
@@ -177,20 +217,21 @@ export class GameEvents extends EventEmitter<GameEventTypes> {
     }
   }
 
-  private setRequiredFeaturesPromise()
-  : Promise<overwolf.games.events.SetRequiredFeaturesResult> {
+  private _setRequiredFeatures():
+    Promise<overwolf.games.events.SetRequiredFeaturesResult> {
+
     return new Promise(resolve => {
       overwolf.games.events.setRequiredFeatures(this.#features, resolve);
     });
   }
 
-  async setRequiredFeatures(gameStatus: GameStatus): Promise<boolean> {
+  private async setRequiredFeatures(): Promise<boolean> {
     let
       tries = 0,
       result: overwolf.games.events.SetRequiredFeaturesResult | null = null;
 
-    while (tries < this.#retries && gameStatus.isRunning) {
-      result = await this.setRequiredFeaturesPromise();
+    while (tries < this.#retries && this.#gameStatus.isRunning) {
+      result = await this._setRequiredFeatures();
 
       if (result.success) {
         console.log(...Utils.L('setRequiredFeatures(): success:', result));

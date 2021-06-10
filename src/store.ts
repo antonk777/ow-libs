@@ -12,7 +12,7 @@ class StateManager<StateMap extends Record<string, any>> extends
 
   readonly name: string
   // readonly #initialState: StateMap
-  readonly #state: StateMap
+  #state: StateMap
   readonly #persistent: boolean
   readonly #localStoragePrefix: string
 
@@ -30,7 +30,7 @@ class StateManager<StateMap extends Record<string, any>> extends
         this.#localStoragePrefix
       );
     } else {
-      this.#state = Utils.objectCopy<StateMap>(initialState);
+      this.#state = Utils.objectCopy(initialState);
     }
   }
 
@@ -55,7 +55,7 @@ class StateManager<StateMap extends Record<string, any>> extends
     const stringified = JSON.stringify(value);
 
     if (this.#persistent) {
-      localStorage[this.#localStoragePrefix + key] = stringified;
+      localStorage.setItem(this.#localStoragePrefix + key, stringified);
     }
 
     const copy = JSON.parse(stringified) as StateMap[Key];
@@ -69,7 +69,10 @@ class StateManager<StateMap extends Record<string, any>> extends
     value: StateMap[Key]
   ): void {
     if (this.#persistent) {
-      localStorage[this.#localStoragePrefix + key] = JSON.stringify(value);
+      localStorage.setItem(
+        this.#localStoragePrefix + key,
+        JSON.stringify(value)
+      );
     }
 
     this.#state[key] = value;
@@ -84,20 +87,35 @@ class StateManager<StateMap extends Record<string, any>> extends
     }
   }
 
+  replaceState(state: StateMap): void {
+    this.#state = Utils.objectCopy(state);
+  }
+
+  clearPersistentState(): void {
+    for (const key in this.#state) {
+      if (this.#state.hasOwnProperty(key)) {
+        localStorage.removeItem(this.#localStoragePrefix + key);
+      }
+    }
+  }
+
   private static hydratePersistentState<T extends Record<string, any>>(
     initialState: T,
     prefix: string
   ): T {
     const
-      state = Utils.objectCopy<T>(initialState),
+      state = Utils.objectCopy(initialState),
       prefixLength = prefix.length;
 
     for (const key in localStorage) {
       if (key.length > prefixLength && key.startsWith(prefix)) {
         const stateKey = key.substr(prefixLength);
 
-        (state as Record<string, any>)[stateKey] =
-          JSON.parse(localStorage[key]);
+        const stored = localStorage.getItem(key);
+
+        if (typeof stored === 'string') {
+          (state as Record<string, any>)[stateKey] = JSON.parse(stored);
+        }
       }
     }
 
