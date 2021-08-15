@@ -54,7 +54,6 @@ export class OverwolfWindow {
       args: [this.#name],
       result
     });
-
   }
 
   async restore(): Promise<void> {
