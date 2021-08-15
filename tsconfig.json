@@ -1,6 +1,6 @@
 {
   "compilerOptions": {
-    "target": "ES6",
+    "target": "ES2020",
     "module": "CommonJS",
     "strict": true,
     "importHelpers": true,
@@ -22,7 +22,7 @@
       ]
     },
     "lib": [
-      "esnext",
+      "ES2020",
       "dom",
       "dom.iterable"
     ]
