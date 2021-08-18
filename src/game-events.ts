@@ -114,6 +114,20 @@ export class GameEvents extends EventEmitter<GameEventTypes> {
     console.log('GameEvents: error:', err);
   }
 
+  getInfo<T>(): Promise<T> {
+    return new Promise((resolve, reject) => {
+      overwolf.games.events.getInfo((
+        data: overwolf.games.events.GetInfoResult
+      ) => {
+        if (data && data.success && data.res) {
+          resolve(data.res);
+        } else {
+          reject(data);
+        }
+      });
+    });
+  }
+
   private onGotInfo(data: overwolf.games.events.GetInfoResult): void {
     if (!data || !data.success || !data.res) return;
 
