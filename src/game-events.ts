@@ -40,6 +40,10 @@ export class GameEvents extends EventEmitter<GameEventTypes> {
     this.#startingPromise = null;
   }
 
+  get state(): Record<string, any> {
+    return Utils.objectCopy(this.#state);
+  }
+
   async start(): Promise<void> {
     if (this.#running) {
       return;
