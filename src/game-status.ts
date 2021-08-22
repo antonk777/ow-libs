@@ -35,7 +35,7 @@ export class GameStatus extends EventEmitter<GameStatusEventTypes> {
     this.#startPromise = this.start();
   }
 
-  async start(): Promise<void> {
+  private async start(): Promise<void> {
     if (this.#started) {
       return;
     }
@@ -122,6 +122,10 @@ export class GameStatus extends EventEmitter<GameStatusEventTypes> {
     }
   }
 
+  /**
+   * Check whenter the game running matches the passed GameID
+   * @param id Overwolf GameID
+   */
   gameIs(id: number): boolean {
     return (this.isRunning && this.gameID === id);
   }
