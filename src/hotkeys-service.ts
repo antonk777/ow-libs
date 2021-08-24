@@ -131,13 +131,13 @@ export class HotkeyService extends EventEmitter<HotkeyEventTypes> {
     const hotkeysResult = await this.getHotkeys();
 
     for (const hotkey of hotkeysResult.globals) {
-      if (this.#hotkeys[hotkey.name]) {
-        this.#hotkeys[hotkey.name].global = hotkey.binding;
-      } else {
+      if (!this.#hotkeys[hotkey.name]) {
         this.#hotkeys[hotkey.name] = {
           global: hotkey.binding,
           games: {}
         };
+      } else {
+        this.#hotkeys[hotkey.name].global = hotkey.binding;
       }
     }
 
@@ -145,6 +145,13 @@ export class HotkeyService extends EventEmitter<HotkeyEventTypes> {
       for (const gameId in hotkeysResult.games) {
         if (hotkeysResult.games.hasOwnProperty(gameId)) {
           for (const hotkey of hotkeysResult.games[gameId]) {
+            if (!this.#hotkeys[hotkey.name]) {
+              this.#hotkeys[hotkey.name] = {
+                global: '',
+                games: {}
+              };
+            }
+
             if (!this.#hotkeys[hotkey.name].games) {
               this.#hotkeys[hotkey.name].games = {};
             }

@@ -5,13 +5,13 @@
     "strict": true,
     "importHelpers": true,
     "declaration": true,
-    "declarationMap": false,
+    "declarationMap": true,
     "outDir": "./dist",
     "moduleResolution": "node",
     "skipLibCheck": true,
     "esModuleInterop": true,
     "allowSyntheticDefaultImports": true,
-    "sourceMap": false,
+    "sourceMap": true,
     "baseUrl": ".",
     "types": [
       "@overwolf/types"

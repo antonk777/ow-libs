@@ -113,7 +113,7 @@ class StateManager<StateMap extends Record<string, any>> extends
 
         const stored = localStorage.getItem(key);
 
-        if (typeof stored === 'string') {
+        if (typeof stored === 'string' && stored !== 'undefined') {
           (state as Record<string, any>)[stateKey] = JSON.parse(stored);
         }
       }
