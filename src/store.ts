@@ -144,6 +144,10 @@ export function makeState<StateMap extends Record<string, any>>(
           return target.on.bind(target);
         case 'off':
           return target.off.bind(target);
+        case 'addListener':
+          return target.addListener.bind(target);
+        case 'removeListener':
+          return target.removeListener.bind(target);
         default:
           return target.get(key);
       }
@@ -152,6 +156,8 @@ export function makeState<StateMap extends Record<string, any>>(
       switch (key) {
         case 'on':
         case 'off':
+        case 'addListener':
+        case 'removeListener':
           throw new Error(`${key} is a reserved property for Store`);
       }
 
