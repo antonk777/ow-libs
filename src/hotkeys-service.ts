@@ -98,9 +98,10 @@ export class HotkeyService extends EventEmitter<HotkeyEventTypes> {
       .removeListener(this.#bound.handleHotkeyPressed);
   }
 
-  getHotkeyBinding(hotkeyName: string, gameId: number): string | null {
+  getHotkeyBinding(hotkeyName: string, gameId?: number): string | null {
     if (this.#hotkeys[hotkeyName]) {
       if (
+        typeof gameId === 'number' &&
         this.#hotkeys[hotkeyName].games &&
         this.#hotkeys[hotkeyName].games[gameId]
       ) {
@@ -192,5 +193,21 @@ export class HotkeyService extends EventEmitter<HotkeyEventTypes> {
     console.log('HotkeyService.handleHotkeyPressed()', event.name);
 
     this.emit('pressed', event.name);
+  }
+
+  assignHotkey(
+    assignHotkey: overwolf.settings.hotkeys.AssignHotkeyObject
+  ): Promise<overwolf.Result> {
+    return new Promise(resolve => {
+      overwolf.settings.hotkeys.assign(assignHotkey, resolve);
+    });
+  }
+
+  unassignHotkey(
+    unassignHotkey: overwolf.settings.hotkeys.UnassignHotkeyObject
+  ): Promise<overwolf.Result> {
+    return new Promise(resolve => {
+      overwolf.settings.hotkeys.unassign(unassignHotkey, resolve);
+    });
   }
 }
