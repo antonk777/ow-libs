@@ -167,11 +167,11 @@ export class HotkeyService extends EventEmitter<HotkeyEventTypes> {
   private handleHotkeyChanged(
     event: overwolf.settings.hotkeys.OnChangedEvent
   ): void {
-    console.log('HotkeyService.handleHotkeyChanged():', event);
+    // console.log('HotkeyService.handleHotkeyChanged():', event);
 
     if (event.gameId === 0) {
       this.#hotkeys[event.name].global = event.binding;
-    } else if (this.#hotkeys.games !== undefined) {
+    } else if (this.#hotkeys[event.name].games !== undefined) {
       this.#hotkeys[event.name].games[event.gameId] = event.binding;
     }
 
@@ -190,7 +190,7 @@ export class HotkeyService extends EventEmitter<HotkeyEventTypes> {
   private handleHotkeyPressed(
     event: overwolf.settings.hotkeys.OnPressedEvent
   ): void {
-    console.log('HotkeyService.handleHotkeyPressed()', event.name);
+    console.log('HotkeyService.handleHotkeyPressed()', event.name, event);
 
     this.emit('pressed', event.name);
   }

@@ -10,10 +10,7 @@ export function binder<T extends Record<string, any>>(target: T): T {
       return methods.hasOwnProperty(prop);
     },
     get(targ, prop: string) {
-      if (
-        methods[prop] === undefined &&
-        targ.hasOwnProperty(prop)
-      ) {
+      if (methods[prop] === undefined && targ[prop]) {
         const method = targ[prop];
 
         if (typeof method === 'function') {
