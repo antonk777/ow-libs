@@ -42,7 +42,7 @@ export class HotkeyService extends EventEmitter<HotkeyEventTypes> {
     this.#startPromise = this.start();
   }
 
-  async start(): Promise<void> {
+  private async start(): Promise<void> {
     if (this.#started) {
       return;
     }
@@ -90,6 +90,7 @@ export class HotkeyService extends EventEmitter<HotkeyEventTypes> {
     this.#started = true;
   }
 
+  /** Remove all listeners */
   destroy(): void {
     overwolf.settings.hotkeys.onChanged
       .removeListener(this.#bound.handleHotkeyChanged);

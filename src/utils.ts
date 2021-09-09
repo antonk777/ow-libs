@@ -53,6 +53,10 @@ export function L(...args: any[]): any[] {
 
 export const log = L;
 
+/**
+ * Set a callback that will be fired before the current window closes
+ * @param fn Callback that will be fired before the current window closes
+ */
 export function beforeClose(fn: () => void): void {
   window.addEventListener('beforeunload', e => {
     console.log('beforeunload fired', e);

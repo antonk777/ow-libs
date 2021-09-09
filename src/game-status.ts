@@ -61,6 +61,7 @@ export class GameStatus extends EventEmitter<GameStatusEventTypes> {
     this.#started = true;
   }
 
+  /** Remove all listeners */
   destroy(): void {
     overwolf.games.onGameInfoUpdated
       .removeListener(this.#bound.onGameInfoUpdated);
@@ -130,6 +131,7 @@ export class GameStatus extends EventEmitter<GameStatusEventTypes> {
     return (this.isRunning && this.gameID === id);
   }
 
+  /** Get gameID of current or last running game */
   get gameID(): number | null {
     if (this.gameInfo) {
       return Math.floor(this.gameInfo.id / 10);

@@ -24,30 +24,46 @@ export class EventEmitter<EventTypes extends Record<string, any>> {
     return typeof listener === 'function';
   }
 
-  hasListener<EventName extends keyof EventTypes>(key: EventName): boolean {
-    const listenersBundle = this.#listeners[key];
+  /**
+   * Check if there are listeners for event name
+   */
+  hasListener<EventName extends keyof EventTypes>(
+    eventName: EventName
+  ): boolean {
+    const listenersBundle = this.#listeners[eventName];
 
     return (listenersBundle && listenersBundle.size > 0);
   }
 
+  /**
+   * Emit an event
+   * @param eventName Event name
+   * @param value Event value that will be passed as an argument to listeners
+   */
   protected emit<EventName extends keyof EventTypes>(
-    key: EventName,
+    eventName: EventName,
     value: EventTypes[EventName]
   ): void {
-    if (!this.hasListener(key)) {
+    if (!this.hasListener(eventName)) {
       return;
     }
 
-    const listenersBundle = this.#listeners[key];
+    const listenersBundle = this.#listeners[eventName];
 
     if (listenersBundle instanceof Map && listenersBundle.size > 0) {
       listenersBundle.forEach(listener => listener(value));
     }
   }
 
+  /**
+   * Add multiple listeners for events
+   * @param listenersBundle Map of events to listeners
+   * @param ref Reference value that can be used to remove the
+   * listeners
+   */
   on(
     listenersBundle: EventListenerBundle<EventTypes>,
-    ref: EventListenerRef
+    ref?: EventListenerRef
   ): void {
     for (const eventName in listenersBundle) {
       if (!listenersBundle.hasOwnProperty(eventName)) continue;
@@ -60,6 +76,13 @@ export class EventEmitter<EventTypes extends Record<string, any>> {
     }
   }
 
+  /**
+   * Add a listener to an event
+   * @param eventName Event name
+   * @param listener Listener function
+   * @param ref Reference value that can be used to remove this listener,
+   * if omitted it will be the listener itself
+   */
   addListener<EventName extends keyof EventTypes>(
     eventName: EventName,
     listener: EventListener<EventTypes[EventName]>,
@@ -73,6 +96,11 @@ export class EventEmitter<EventTypes extends Record<string, any>> {
       .set(ref, listener);
   }
 
+  /**
+   * Remove multiple listeners for events
+   * @param eventNames Array of event names
+   * @param ref Reference value that map to listeners
+   */
   off<EventName extends keyof EventTypes>(
     eventNames: EventName[],
     ref: EventListenerRef
@@ -86,6 +114,12 @@ export class EventEmitter<EventTypes extends Record<string, any>> {
   //   });
   // }
 
+  /**
+   * Remove a listener to an event
+   * @param eventName Event name
+   * @param ref Reference value that was used when adding the listener,
+   * this can be the listener itself
+   */
   removeListener<EventName extends keyof EventTypes>(
     eventName: EventName,
     ref: EventListenerRef

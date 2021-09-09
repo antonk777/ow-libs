@@ -4,9 +4,10 @@ function makeGlobalKey(key: string): string {
 
 export const WindowTunnel = {
   /**
-   * This should ONLY be called from the window set
-   * as "start_window" in manifest.json (background window)
-   * @param key Global key for tunnneled object
+   * Set a global object that will be shared between all windows.
+   * This should ONLY be called from the window set as "start_window"
+   * in manifest.json (background window)
+   * @param key Global name for tunneled object
    * @param value Object to tunnel
    */
   set<T>(key: string, value: T): void {
@@ -17,6 +18,11 @@ export const WindowTunnel = {
     w[makeGlobalKey(key)] = value;
   },
 
+  /**
+   * Get a global tunneled object.
+   * @param key Global name for tunneled object
+   * @returns Tunneled object
+   */
   get<T>(key: string): T {
     const w = overwolf.windows.getMainWindow() as Record<string, any>;
 
