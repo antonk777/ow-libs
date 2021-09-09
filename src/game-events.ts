@@ -40,10 +40,15 @@ export class GameEvents extends EventEmitter<GameEventTypes> {
     this.#startingPromise = null;
   }
 
+  /** Copy of current state, both info updates and last event values */
   get state(): Record<string, any> {
     return Utils.objectCopy(this.#state);
   }
 
+  /**
+   * Call overwolf.games.events.setRequiredFeatures and bind listeners
+   * @see https://overwolf.github.io/docs/api/overwolf-games-events#setrequiredfeaturesfeatures-callback
+   */
   async start(): Promise<void> {
     if (this.#running) {
       return;
@@ -71,6 +76,7 @@ export class GameEvents extends EventEmitter<GameEventTypes> {
     }
   }
 
+  /** Remove all listeners and clear the {@link state} */
   async stop(): Promise<void> {
     if (!this.#running) {
       return;
@@ -95,6 +101,7 @@ export class GameEvents extends EventEmitter<GameEventTypes> {
     this.removeListeners();
   }
 
+  /** Remove all listeners */
   destroy(): void {
     this.removeListeners();
     this.#running = false;
@@ -118,6 +125,7 @@ export class GameEvents extends EventEmitter<GameEventTypes> {
     console.log('GameEvents: error:', err);
   }
 
+  /** Wrapper for overwolf.games.events.getInfo */
   getInfo<T>(): Promise<T> {
     return new Promise((resolve, reject) => {
       overwolf.games.events.getInfo((

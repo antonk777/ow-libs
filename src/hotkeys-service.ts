@@ -196,6 +196,10 @@ export class HotkeyService extends EventEmitter<HotkeyEventTypes> {
     this.emit('pressed', event.name);
   }
 
+  /**
+   * Wrapper for overwolf.settings.hotkeys.assign
+   * @see https://overwolf.github.io/docs/api/overwolf-settings-hotkeys#assignhotkey-callback
+   */
   assignHotkey(
     assignHotkey: overwolf.settings.hotkeys.AssignHotkeyObject
   ): Promise<overwolf.Result> {
@@ -204,6 +208,10 @@ export class HotkeyService extends EventEmitter<HotkeyEventTypes> {
     });
   }
 
+  /**
+   * Wrapper for overwolf.settings.hotkeys.unassign
+   * @see https://overwolf.github.io/docs/api/overwolf-settings-hotkeys#unassignhotkey-callback
+   */
   unassignHotkey(
     unassignHotkey: overwolf.settings.hotkeys.UnassignHotkeyObject
   ): Promise<overwolf.Result> {

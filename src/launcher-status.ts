@@ -43,7 +43,7 @@ export class LauncherStatus extends EventEmitter<LauncherStatusEventTypes> {
     return objectCopy<LauncherInfo>(this.#launcherInfo);
   }
 
-  async start(): Promise<void> {
+  private async start(): Promise<void> {
     if (this.#started) {
       return;
     }
@@ -88,6 +88,7 @@ export class LauncherStatus extends EventEmitter<LauncherStatusEventTypes> {
     this.#started = true;
   }
 
+  /** Remove all listeners */
   destroy(): void {
     overwolf.games.launchers.onLaunched
       .removeListener(this.#bound.onLauncherLaunched);
@@ -97,7 +98,9 @@ export class LauncherStatus extends EventEmitter<LauncherStatusEventTypes> {
       .removeListener(this.#bound.onLauncherInfoUpdated);
   }
 
-  onLauncherLaunched(info: overwolf.games.launchers.LauncherInfo): void {
+  private onLauncherLaunched(
+    info: overwolf.games.launchers.LauncherInfo
+  ): void {
     // console.log('onLauncherLaunched', info)
 
     const isInFocusChanged = (info.isInFocus !== this.#isInFocus);
@@ -113,7 +116,7 @@ export class LauncherStatus extends EventEmitter<LauncherStatusEventTypes> {
     this.emit('changed', this.launcherInfo);
   }
 
-  onLauncherTerminated(): void {
+  private onLauncherTerminated(): void {
     // console.log('onLauncherTerminated')
 
     const isInFocusChanged = this.#isInFocus;
@@ -129,7 +132,9 @@ export class LauncherStatus extends EventEmitter<LauncherStatusEventTypes> {
     this.emit('changed', this.launcherInfo);
   }
 
-  onLauncherInfoUpdated({ info }: overwolf.games.launchers.UpdatedEvent): void {
+  private onLauncherInfoUpdated(
+    { info }: overwolf.games.launchers.UpdatedEvent
+  ): void {
     // console.log('onLauncherInfoUpdated', info, changeType)
 
     const isInFocusChanged = (info.isInFocus !== this.#isInFocus);

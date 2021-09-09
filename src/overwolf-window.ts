@@ -417,8 +417,10 @@ export class OverwolfWindowError extends Error {
 
     this.name = 'OverwolfWindowError';
 
-    // if (Error.captureStackTrace) {
-    //   Error.captureStackTrace(this, OverwolfWindowError);
-    // }
+    const errConst = Error as Record<string, any>;
+
+    if (errConst.captureStackTrace) {
+      errConst.captureStackTrace(this, OverwolfWindowError);
+    }
   }
 }
