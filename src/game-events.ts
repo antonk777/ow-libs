@@ -163,13 +163,12 @@ export class GameEvents extends EventEmitter<GameEventTypes> {
 
           try {
             val = JSON.parse(val);
-          } catch (e) {
-            console.log('onGotInfo(): JSON parsing error:', e);
-          }
+          } catch (e) {}
 
           const e: GameEvent = { path, category, key, val };
 
           this.emit(path, e);
+          this.emit(`${category}.*`, e);
           this.emit('*', e);
         }
       }
@@ -199,13 +198,12 @@ export class GameEvents extends EventEmitter<GameEventTypes> {
 
           try {
             val = JSON.parse(val);
-          } catch (e) {
-            console.log('onInfoUpdate(): JSON parsing error:', e);
-          }
+          } catch (e) {}
 
           const e: GameEvent = { path, category, key, val };
 
           this.emit(path, e);
+          this.emit(`${category}.*`, e);
           this.emit('*', e);
         }
       }
@@ -232,13 +230,12 @@ export class GameEvents extends EventEmitter<GameEventTypes> {
 
       try {
         val = JSON.parse(val);
-      } catch (e) {
-        console.log('onNewEvent(): JSON parsing error:', e);
-      }
+      } catch (e) {}
 
       const e: GameEvent = { path, category, key, val };
 
       this.emit(path, e);
+      this.emit(`${category}.*`, e);
       this.emit('*', e);
     }
   }
