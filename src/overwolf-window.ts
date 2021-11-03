@@ -1,45 +1,15 @@
-const NOT_CURRENT_WINDOW = 'Method does not support windows other than current';
-
 export class OverwolfWindow {
-  #name: string | null
+  #name: string
   #id: string | null
 
-  constructor(name: string | null = null) {
+  constructor(name: string) {
     this.#name = name;
     this.#id = null;
   }
 
-  private get isCurrent(): boolean {
-    return (this.#name === null);
-  }
-
-  obtain(): Promise<overwolf.windows.WindowInfo> {
-    if (this.isCurrent) {
-      return this.obtainCurrent();
-    }
-
-    return this.obtainByName();
-  }
-
-  private async obtainCurrent(): Promise<overwolf.windows.WindowInfo> {
+  private async obtain(): Promise<overwolf.windows.WindowInfo> {
     const result: overwolf.windows.WindowResult = await new Promise(resolve => {
-      overwolf.windows.getCurrentWindow(resolve);
-    });
-
-    if (result && result.success && result.window && result.window.id) {
-      this.#id = result.window.id;
-
-      return result.window;
-    }
-
-    this.#id = null;
-
-    throw new OverwolfWindowError({ result });
-  }
-
-  private async obtainByName(): Promise<overwolf.windows.WindowInfo> {
-    const result: overwolf.windows.WindowResult = await new Promise(resolve => {
-      overwolf.windows.obtainDeclaredWindow(this.#name as string, resolve);
+      overwolf.windows.obtainDeclaredWindow(this.#name, resolve);
     });
 
     if (result && result.success && result.window && result.window.id) {
@@ -188,11 +158,9 @@ export class OverwolfWindow {
   }
 
   async getWindowState(): Promise<overwolf.windows.GetWindowStateResult> {
-    await this.obtain();
-
     const result: overwolf.windows.GetWindowStateResult =
       await new Promise(resolve => {
-        overwolf.windows.getWindowState(this.#id as string, resolve);
+        overwolf.windows.getWindowState(this.#name, resolve);
       });
 
     if (result && result.success) {
@@ -200,7 +168,7 @@ export class OverwolfWindow {
     }
 
     throw new OverwolfWindowError({
-      args: [this.#id],
+      args: [this.#name],
       result
     });
 
@@ -275,54 +243,59 @@ export class OverwolfWindow {
     }
   }
 
-  async isWindowVisibleToUser()
-  : Promise<overwolf.windows.IsWindowVisibleToUserResult> {
-    if (!this.isCurrent) {
-      throw new Error(NOT_CURRENT_WINDOW);
-    }
+  async _internalClose(): Promise<void> {
+    await this.obtain();
 
-    const result: overwolf.windows.IsWindowVisibleToUserResult =
+    const result: overwolf.windows.WindowIdResult =
       await new Promise(resolve => {
-        overwolf.windows.isWindowVisibleToUser(resolve);
+        overwolf.windows.close(this.#id as string, resolve);
       });
 
-    if (result && result.success) {
-      return result;
+    if (!result || !result.success) {
+      throw new OverwolfWindowError({
+        args: [this.#id],
+        result
+      });
     }
-
-    throw new OverwolfWindowError({ result });
-
   }
 
   async close(): Promise<void> {
-    const win = await this.obtain();
+    const state = await this.getWindowState();
 
-    if (win && win.stateEx !== 'closed') {
-      const result: overwolf.windows.WindowIdResult =
-        await new Promise(resolve => {
-          overwolf.windows.close(this.#id as string, resolve);
-        });
+    console.log(
+      'close():',
+      this.#name,
+      state.window_state_ex,
+    );
 
-      if (!result || !result.success) {
-        throw new OverwolfWindowError({
-          args: [this.#id],
-          result
-        });
-      }
+    // console.trace();
+
+    if (state.success && state.window_state_ex !== 'closed') {
+      await this._internalClose();
     }
   }
 
   async toggle(): Promise<void> {
-    const win = await this.obtain();
+    const state = await this.getWindowState();
 
-    switch (win.stateEx) {
+    if (!state.success) {
+      return;
+    }
+
+    console.log(
+      'close():',
+      this.#name,
+      state.window_state_ex,
+    );
+
+    switch (state.window_state_ex) {
       case 'closed':
       case 'minimized':
       case 'hidden':
         await this.restore();
         break;
       default:
-        await this.close();
+        await this._internalClose();
         break;
     }
   }
@@ -390,6 +363,21 @@ export class OverwolfWindow {
 
   static getMonitorsList(): Promise<overwolf.utils.getMonitorsListResult> {
     return new Promise(resolve => overwolf.utils.getMonitorsList(resolve));
+  }
+
+  static async isWindowVisibleToUser()
+  : Promise<overwolf.windows.IsWindowVisibleToUserResult> {
+
+    const result: overwolf.windows.IsWindowVisibleToUserResult =
+      await new Promise(resolve => {
+        overwolf.windows.isWindowVisibleToUser(resolve);
+      });
+
+    if (result && result.success) {
+      return result;
+    }
+
+    throw new OverwolfWindowError({ result });
   }
 }
 
