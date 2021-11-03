@@ -262,14 +262,6 @@ export class OverwolfWindow {
   async close(): Promise<void> {
     const state = await this.getWindowState();
 
-    console.log(
-      'close():',
-      this.#name,
-      state.window_state_ex,
-    );
-
-    // console.trace();
-
     if (state.success && state.window_state_ex !== 'closed') {
       await this._internalClose();
     }
@@ -281,12 +273,6 @@ export class OverwolfWindow {
     if (!state.success) {
       return;
     }
-
-    console.log(
-      'close():',
-      this.#name,
-      state.window_state_ex,
-    );
 
     switch (state.window_state_ex) {
       case 'closed':
