@@ -243,7 +243,7 @@ export class OverwolfWindow {
     }
   }
 
-  async _internalClose(): Promise<void> {
+  private async _internalClose(): Promise<void> {
     await this.obtain();
 
     const result: overwolf.windows.WindowIdResult =
@@ -262,17 +262,13 @@ export class OverwolfWindow {
   async close(): Promise<void> {
     const state = await this.getWindowState();
 
-    if (state.success && state.window_state_ex !== 'closed') {
+    if (state.window_state_ex !== 'closed') {
       await this._internalClose();
     }
   }
 
   async toggle(): Promise<void> {
     const state = await this.getWindowState();
-
-    if (!state.success) {
-      return;
-    }
 
     switch (state.window_state_ex) {
       case 'closed':
