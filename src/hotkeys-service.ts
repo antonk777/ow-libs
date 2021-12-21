@@ -1,5 +1,6 @@
 import { binder } from './binder';
 import { EventEmitter } from './event-emitter';
+import { L } from './utils';
 
 type GetAssignedHotkeyResult = overwolf.settings.hotkeys.GetAssignedHotkeyResult
 
@@ -99,7 +100,7 @@ export class HotkeyService extends EventEmitter<HotkeyEventTypes> {
       .removeListener(this.#bound.handleHotkeyPressed);
   }
 
-  getHotkeyBinding(hotkeyName: string, gameId?: number): string | null {
+  getHotkeyBinding(hotkeyName: string, gameId?: number): string {
     if (this.#hotkeys[hotkeyName]) {
       if (
         typeof gameId === 'number' &&
@@ -114,7 +115,14 @@ export class HotkeyService extends EventEmitter<HotkeyEventTypes> {
       }
     }
 
-    return null;
+    console.warn(
+      'HotkeyService.getHotkeyBinding(): failed:',
+      hotkeyName,
+      gameId
+    );
+    console.warn(...L(this.#hotkeys));
+
+    return '';
   }
 
   private getHotkeys(): Promise<GetAssignedHotkeyResult> {
@@ -168,8 +176,6 @@ export class HotkeyService extends EventEmitter<HotkeyEventTypes> {
   private handleHotkeyChanged(
     event: overwolf.settings.hotkeys.OnChangedEvent
   ): void {
-    console.log('HotkeyService.handleHotkeyChanged():', event);
-
     if (event.gameId === 0) {
       this.#hotkeys[event.name].global = event.binding;
     } else if (this.#hotkeys[event.name].games !== undefined) {
