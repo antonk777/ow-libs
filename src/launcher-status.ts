@@ -53,6 +53,20 @@ export class LauncherStatus extends EventEmitter<LauncherStatusEventTypes> {
       return;
     }
 
+    overwolf.games.launchers.onLaunched
+      .removeListener(this.#bound.onLauncherLaunched);
+    overwolf.games.launchers.onTerminated
+      .removeListener(this.#bound.onLauncherTerminated);
+    overwolf.games.launchers.onUpdated
+      .removeListener(this.#bound.onLauncherInfoUpdated);
+
+    overwolf.games.launchers.onLaunched
+      .addListener(this.#bound.onLauncherLaunched);
+    overwolf.games.launchers.onTerminated
+      .addListener(this.#bound.onLauncherTerminated);
+    overwolf.games.launchers.onUpdated
+      .addListener(this.#bound.onLauncherInfoUpdated);
+
     const launchersInfo:
       overwolf.games.launchers.GetRunningLaunchersInfoResult =
         await new Promise(resolve => {
@@ -70,20 +84,6 @@ export class LauncherStatus extends EventEmitter<LauncherStatusEventTypes> {
     }
 
     this.#isInFocus = !!(this.#launcherInfo && this.#launcherInfo.isInFocus);
-
-    overwolf.games.launchers.onLaunched
-      .removeListener(this.#bound.onLauncherLaunched);
-    overwolf.games.launchers.onTerminated
-      .removeListener(this.#bound.onLauncherTerminated);
-    overwolf.games.launchers.onUpdated
-      .removeListener(this.#bound.onLauncherInfoUpdated);
-
-    overwolf.games.launchers.onLaunched
-      .addListener(this.#bound.onLauncherLaunched);
-    overwolf.games.launchers.onTerminated
-      .addListener(this.#bound.onLauncherTerminated);
-    overwolf.games.launchers.onUpdated
-      .addListener(this.#bound.onLauncherInfoUpdated);
 
     this.#started = true;
   }

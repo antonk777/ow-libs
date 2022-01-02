@@ -71,8 +71,8 @@ export class GameEvents extends EventEmitter<GameEventTypes> {
     const success = await this.setRequiredFeatures();
 
     if (success) {
-      overwolf.games.events.getInfo(this.#bound.onGotInfo);
       this.setListeners();
+      overwolf.games.events.getInfo(this.#bound.onGotInfo);
     }
   }
 

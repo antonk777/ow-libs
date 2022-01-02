@@ -45,6 +45,11 @@ export class GameStatus extends EventEmitter<GameStatusEventTypes> {
       return;
     }
 
+    overwolf.games.onGameInfoUpdated
+      .removeListener(this.#bound.onGameInfoUpdated);
+
+    overwolf.games.onGameInfoUpdated.addListener(this.#bound.onGameInfoUpdated);
+
     const gameInfo: overwolf.games.GetRunningGameInfoResult =
       await new Promise(resolve => overwolf.games.getRunningGameInfo(resolve));
 
@@ -52,11 +57,6 @@ export class GameStatus extends EventEmitter<GameStatusEventTypes> {
 
     this.isInFocus = !!(gameInfo && gameInfo.isInFocus);
     this.isRunning = !!(gameInfo && gameInfo.isRunning);
-
-    overwolf.games.onGameInfoUpdated
-      .removeListener(this.#bound.onGameInfoUpdated);
-
-    overwolf.games.onGameInfoUpdated.addListener(this.#bound.onGameInfoUpdated);
 
     this.#started = true;
   }
