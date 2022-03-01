@@ -7,8 +7,12 @@ export class OverwolfPlugin<PluginType> {
     this.#pluginName = pluginName;
   }
 
-  get plugin(): PluginType | null {
-    return this.#plugin;
+  get plugin(): PluginType {
+    if (this.#plugin !== null) {
+      return this.#plugin;
+    }
+
+    throw new Error('plugin not initialized');
   }
 
   private _loadPluginPromise(): Promise<PluginType> {
