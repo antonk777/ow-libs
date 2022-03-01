@@ -1,17 +1,17 @@
-export class OverwolfPlugin {
+export class OverwolfPlugin<PluginType> {
   readonly #pluginName: string
-  #plugin: any = null
-  #loadingPromise: Promise<any> | null = null
+  #plugin: PluginType | null = null
+  #loadingPromise: Promise<PluginType> | null = null
 
   constructor(pluginName: string) {
     this.#pluginName = pluginName;
   }
 
-  get plugin(): any {
+  get plugin(): PluginType | null {
     return this.#plugin;
   }
 
-  private _loadPluginPromise(): Promise<any> {
+  private _loadPluginPromise(): Promise<PluginType> {
     return new Promise((resolve, reject) => {
       overwolf.extensions.current.getExtraObject(this.#pluginName, result => {
         if (result.success && result.object) {
@@ -26,7 +26,7 @@ export class OverwolfPlugin {
     });
   }
 
-  async loadPlugin(): Promise<any> {
+  async loadPlugin(): Promise<PluginType> {
     if (this.#plugin) {
       return this.#plugin;
     }
