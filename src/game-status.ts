@@ -6,7 +6,7 @@ type GameStatusEventTypes = {
   running: boolean,
   resolutionChanged: overwolf.games.RunningGameInfo | null,
   gameChanged: overwolf.games.RunningGameInfo | null,
-  changed: overwolf.games.RunningGameInfo | null,
+  '*': overwolf.games.RunningGameInfo | null,
 }
 
 export class GameStatus extends EventEmitter<GameStatusEventTypes> {
@@ -19,7 +19,7 @@ export class GameStatus extends EventEmitter<GameStatusEventTypes> {
   #lastGameID: number | null
   #started: boolean
 
-  readonly #startPromise: Promise<void> | null
+  #startPromise: Promise<void> | null
 
   constructor() {
     super();
@@ -31,20 +31,26 @@ export class GameStatus extends EventEmitter<GameStatusEventTypes> {
     this.gameInfo = null;
 
     this.#lastGameID = null;
+
     this.#started = false;
-    this.#startPromise = this.start();
+    this.#startPromise = null;
   }
 
-  private async start(): Promise<void> {
+  async start(): Promise<void> {
     if (this.#started) {
       return;
     }
 
-    if (this.#startPromise) {
-      await this.#startPromise;
-      return;
+    if (!this.#startPromise) {
+      this.#startPromise = this._start();
     }
 
+    await this.#startPromise;
+
+    this.#started = true;
+  }
+
+  private async _start(): Promise<void> {
     overwolf.games.onGameInfoUpdated
       .removeListener(this.#bound.onGameInfoUpdated);
 
@@ -57,8 +63,6 @@ export class GameStatus extends EventEmitter<GameStatusEventTypes> {
 
     this.isInFocus = !!(gameInfo && gameInfo.isInFocus);
     this.isRunning = !!(gameInfo && gameInfo.isRunning);
-
-    this.#started = true;
   }
 
   /** Remove all listeners */
@@ -93,7 +97,7 @@ export class GameStatus extends EventEmitter<GameStatusEventTypes> {
     }
 
     if (isRunningChanged) {
-      this.emit('running', isInFocus);
+      this.emit('running', isRunning);
     }
 
     if (e && e.gameInfo && e.resolutionChanged) {
@@ -110,7 +114,7 @@ export class GameStatus extends EventEmitter<GameStatusEventTypes> {
       e.resolutionChanged ||
       e.gameChanged
     ) {
-      this.emit('changed', e.gameInfo || null);
+      this.emit('*', e.gameInfo || null);
     }
   }
 
@@ -121,14 +125,6 @@ export class GameStatus extends EventEmitter<GameStatusEventTypes> {
     } else {
       this.gameInfo = null;
     }
-  }
-
-  /**
-   * Check whenter the game running matches the passed GameID
-   * @param id Overwolf GameID
-   */
-  gameIs(id: number): boolean {
-    return (this.isRunning && this.gameID === id);
   }
 
   /** Get gameID of current or last running game */

@@ -1,10 +1,10 @@
 import { EventEmitter, Utils, WindowTunnel } from './';
 
 interface StateSubscription<StateMap> {
-  on: EventEmitter<StateMap>['on']
-  off: EventEmitter<StateMap>['off']
-  addListener: EventEmitter<StateMap>['addListener']
-  removeListener: EventEmitter<StateMap>['removeListener']
+  readonly on: EventEmitter<StateMap>['on']
+  readonly off: EventEmitter<StateMap>['off']
+  readonly addListener: EventEmitter<StateMap>['addListener']
+  readonly removeListener: EventEmitter<StateMap>['removeListener']
 }
 
 export type State<T> = T & StateSubscription<T>
