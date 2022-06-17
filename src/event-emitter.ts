@@ -1,4 +1,4 @@
-type EventListener<EventType> = (event: EventType) => void
+type EventListener<EventType> = (event?: EventType) => void
 
 type EventListenerRef = any
 
@@ -18,8 +18,8 @@ type EventListenerBundle<EventTypes> = {
 export class EventEmitter<EventTypes extends Record<string, any>> {
   readonly #listeners: EventListenerStore<EventTypes> = {}
 
-  private _isEventListener<EventType>(
-    listener: any
+  #isEventListener<EventType>(
+    listener: (...any: any[]) => any
   ): listener is EventListener<EventType> {
     return typeof listener === 'function';
   }
@@ -58,19 +58,23 @@ export class EventEmitter<EventTypes extends Record<string, any>> {
   /**
    * Add multiple listeners for events
    * @param listenersBundle Map of events to listeners
-   * @param ref Reference value that can be used to remove the
-   * listeners
+   * @param ref Reference value that can be used to remove the listeners
    */
   on(
     listenersBundle: EventListenerBundle<EventTypes>,
     ref?: EventListenerRef
   ): void {
     for (const eventName in listenersBundle) {
-      if (!listenersBundle.hasOwnProperty(eventName)) continue;
+      if (!listenersBundle.hasOwnProperty(eventName)) {
+        continue;
+      }
 
       const listener = listenersBundle[eventName];
 
-      if (this._isEventListener<EventTypes[typeof eventName]>(listener)) {
+      if (
+        listener !== undefined &&
+        this.#isEventListener<EventTypes[typeof eventName]>(listener)
+      ) {
         this.addListener(eventName, listener, ref);
       }
     }
@@ -107,12 +111,6 @@ export class EventEmitter<EventTypes extends Record<string, any>> {
   ): void {
     eventNames.forEach(eventName => this.removeListener(eventName, ref));
   }
-
-  // offByRef(ref: EventListenerRef): void {
-  //   Object.keys(this.#listeners).forEach(eventName => {
-  //     this.removeListener(eventName, ref);
-  //   });
-  // }
 
   /**
    * Remove a listener to an event

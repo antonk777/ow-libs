@@ -1,4 +1,3 @@
-import { binder } from './binder';
 import { EventEmitter } from './event-emitter';
 
 type GameStatusEventTypes = {
@@ -10,21 +9,21 @@ type GameStatusEventTypes = {
 }
 
 export class GameStatus extends EventEmitter<GameStatusEventTypes> {
-  readonly #bound: GameStatus
-
-  public isInFocus: boolean
-  public isRunning: boolean
-  public gameInfo: overwolf.games.RunningGameInfo | null
+  isInFocus: boolean
+  isRunning: boolean
+  gameInfo: overwolf.games.RunningGameInfo | null
 
   #lastGameID: number | null
   #started: boolean
 
   #startPromise: Promise<void> | null
 
+  #onGameInfoUpdatedBound
+
   constructor() {
     super();
 
-    this.#bound = binder<GameStatus>(this);
+    this.#onGameInfoUpdatedBound = this.#onGameInfoUpdated.bind(this);
 
     this.isInFocus = false;
     this.isRunning = false;
@@ -42,7 +41,7 @@ export class GameStatus extends EventEmitter<GameStatusEventTypes> {
     }
 
     if (!this.#startPromise) {
-      this.#startPromise = this._start();
+      this.#startPromise = this.#start();
     }
 
     await this.#startPromise;
@@ -50,16 +49,13 @@ export class GameStatus extends EventEmitter<GameStatusEventTypes> {
     this.#started = true;
   }
 
-  private async _start(): Promise<void> {
-    overwolf.games.onGameInfoUpdated
-      .removeListener(this.#bound.onGameInfoUpdated);
-
-    overwolf.games.onGameInfoUpdated.addListener(this.#bound.onGameInfoUpdated);
+  async #start(): Promise<void> {
+    overwolf.games.onGameInfoUpdated.addListener(this.#onGameInfoUpdatedBound);
 
     const gameInfo: overwolf.games.GetRunningGameInfoResult =
       await new Promise(resolve => overwolf.games.getRunningGameInfo(resolve));
 
-    this.setGameInfo(gameInfo);
+    this.#setGameInfo(gameInfo);
 
     this.isInFocus = !!(gameInfo && gameInfo.isInFocus);
     this.isRunning = !!(gameInfo && gameInfo.isRunning);
@@ -68,10 +64,12 @@ export class GameStatus extends EventEmitter<GameStatusEventTypes> {
   /** Remove all listeners */
   destroy(): void {
     overwolf.games.onGameInfoUpdated
-      .removeListener(this.#bound.onGameInfoUpdated);
+      .removeListener(this.#onGameInfoUpdatedBound);
+
+    this.#started = false;
   }
 
-  private onGameInfoUpdated(e: overwolf.games.GameInfoUpdatedEvent): void {
+  #onGameInfoUpdated(e: overwolf.games.GameInfoUpdatedEvent): void {
     const
       isInFocus = !!(e && e.gameInfo && e.gameInfo.isInFocus),
       isRunning = !!(e && e.gameInfo && e.gameInfo.isRunning),
@@ -79,9 +77,9 @@ export class GameStatus extends EventEmitter<GameStatusEventTypes> {
       isRunningChanged = (isRunning !== this.isRunning);
 
     if (e && e.gameInfo) {
-      this.setGameInfo(e.gameInfo);
+      this.#setGameInfo(e.gameInfo);
     } else {
-      this.setGameInfo(null);
+      this.#setGameInfo(null);
     }
 
     if (isInFocusChanged) {
@@ -118,7 +116,7 @@ export class GameStatus extends EventEmitter<GameStatusEventTypes> {
     }
   }
 
-  private setGameInfo(gameInfo: overwolf.games.RunningGameInfo | null): void {
+  #setGameInfo(gameInfo: overwolf.games.RunningGameInfo | null): void {
     if (gameInfo && gameInfo.isRunning) {
       this.gameInfo = gameInfo;
       this.#lastGameID = Math.floor(gameInfo.id / 10);

@@ -9,6 +9,29 @@ interface StateSubscription<StateMap> {
 
 export type State<T> = T & StateSubscription<T>
 
+function hydratePersistentState<T extends Record<string, any>>(
+  initialState: T,
+  prefix: string
+): T {
+  const
+    state = Utils.objectCopy(initialState),
+    prefixLength = prefix.length;
+
+  for (const key in localStorage) {
+    if (key.length > prefixLength && key.startsWith(prefix)) {
+      const stateKey = key.substr(prefixLength);
+
+      const stored = localStorage.getItem(key);
+
+      if (typeof stored === 'string' && stored !== 'undefined') {
+        (state as Record<string, any>)[stateKey] = JSON.parse(stored);
+      }
+    }
+  }
+
+  return state;
+}
+
 class StateManager<StateMap extends Record<string, any>> extends
   EventEmitter<StateMap> {
 
@@ -27,7 +50,7 @@ class StateManager<StateMap extends Record<string, any>> extends
     // this.#initialState = initialState;
 
     if (this.#persistent) {
-      this.#state = StateManager.hydratePersistentState<StateMap>(
+      this.#state = hydratePersistentState<StateMap>(
         initialState,
         this.#localStoragePrefix
       );
@@ -50,7 +73,7 @@ class StateManager<StateMap extends Record<string, any>> extends
     return value;
   }
 
-  private _setObject<Key extends keyof StateMap>(
+  #setObject<Key extends keyof StateMap>(
     key: Key,
     value: StateMap[Key]
   ): void {
@@ -66,7 +89,7 @@ class StateManager<StateMap extends Record<string, any>> extends
     this.emit(key, copy);
   }
 
-  private _setPrimitive<Key extends keyof StateMap>(
+  #setPrimitive<Key extends keyof StateMap>(
     key: Key,
     value: StateMap[Key]
   ): void {
@@ -83,9 +106,9 @@ class StateManager<StateMap extends Record<string, any>> extends
 
   set<Key extends keyof StateMap>(key: Key, value: StateMap[Key]): void {
     if (typeof value === 'object' && value !== null) {
-      this._setObject(key, value);
+      this.#setObject(key, value);
     } else {
-      this._setPrimitive(key, value);
+      this.#setPrimitive(key, value);
     }
   }
 
@@ -99,29 +122,6 @@ class StateManager<StateMap extends Record<string, any>> extends
         localStorage.removeItem(this.#localStoragePrefix + key);
       }
     }
-  }
-
-  private static hydratePersistentState<T extends Record<string, any>>(
-    initialState: T,
-    prefix: string
-  ): T {
-    const
-      state = Utils.objectCopy(initialState),
-      prefixLength = prefix.length;
-
-    for (const key in localStorage) {
-      if (key.length > prefixLength && key.startsWith(prefix)) {
-        const stateKey = key.substr(prefixLength);
-
-        const stored = localStorage.getItem(key);
-
-        if (typeof stored === 'string' && stored !== 'undefined') {
-          (state as Record<string, any>)[stateKey] = JSON.parse(stored);
-        }
-      }
-    }
-
-    return state;
   }
 }
 

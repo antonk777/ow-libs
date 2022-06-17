@@ -6,5 +6,6 @@ export * from './overwolf-plugin';
 export * from './overwolf-window';
 export * from './hotkeys-service';
 export * from './window-tunnel';
-export * as OverwolfStore from './store';
+export * from './state';
+export * from './utils';
 export * as Utils from './utils';

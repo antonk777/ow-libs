@@ -1,4 +1,3 @@
-import { binder } from './binder';
 import { EventEmitter } from './event-emitter';
 import { objectCopy } from './utils';
 
@@ -11,24 +10,28 @@ type LauncherStatusEventTypes = {
 }
 
 export class LauncherStatus extends EventEmitter<LauncherStatusEventTypes> {
-  readonly #bound: LauncherStatus
-
   #isInFocus: boolean
   #launcherInfo: LauncherInfo
 
   #started: boolean
-  readonly #startPromise: Promise<void> | null
+  #startingPromise: Promise<void> | null
+
+  #onLauncherLaunchedBound
+  #onLauncherTerminatedBound
+  #onLauncherInfoUpdatedBound
 
   constructor() {
     super();
 
-    this.#bound = binder<LauncherStatus>(this);
+    this.#onLauncherLaunchedBound = this.#onLauncherLaunched.bind(this);
+    this.#onLauncherTerminatedBound = this.#onLauncherTerminated.bind(this);
+    this.#onLauncherInfoUpdatedBound = this.#onLauncherInfoUpdated.bind(this);
 
     this.#launcherInfo = null;
     this.#isInFocus = false;
 
     this.#started = false;
-    this.#startPromise = this.start();
+    this.#startingPromise = null;
   }
 
   get isRunning(): boolean {
@@ -43,29 +46,40 @@ export class LauncherStatus extends EventEmitter<LauncherStatusEventTypes> {
     return objectCopy<LauncherInfo>(this.#launcherInfo);
   }
 
-  private async start(): Promise<void> {
+  async start(): Promise<void> {
     if (this.#started) {
       return;
     }
 
-    if (this.#startPromise) {
-      await this.#startPromise;
+    if (this.#startingPromise) {
+      return this.#startingPromise;
+    }
+
+    this.#startingPromise = this.#start();
+
+    await this.#startingPromise;
+
+    this.#startingPromise = null;
+  }
+
+  async #start(): Promise<void> {
+    if (this.#started) {
       return;
     }
 
-    overwolf.games.launchers.onLaunched
-      .removeListener(this.#bound.onLauncherLaunched);
-    overwolf.games.launchers.onTerminated
-      .removeListener(this.#bound.onLauncherTerminated);
-    overwolf.games.launchers.onUpdated
-      .removeListener(this.#bound.onLauncherInfoUpdated);
+    if (this.#startingPromise) {
+      await this.#startingPromise;
+      return;
+    }
+
+    this.destroy();
 
     overwolf.games.launchers.onLaunched
-      .addListener(this.#bound.onLauncherLaunched);
+      .addListener(this.#onLauncherLaunchedBound);
     overwolf.games.launchers.onTerminated
-      .addListener(this.#bound.onLauncherTerminated);
+      .addListener(this.#onLauncherTerminatedBound);
     overwolf.games.launchers.onUpdated
-      .addListener(this.#bound.onLauncherInfoUpdated);
+      .addListener(this.#onLauncherInfoUpdatedBound);
 
     const launchersInfo:
       overwolf.games.launchers.GetRunningLaunchersInfoResult =
@@ -91,14 +105,16 @@ export class LauncherStatus extends EventEmitter<LauncherStatusEventTypes> {
   /** Remove all listeners */
   destroy(): void {
     overwolf.games.launchers.onLaunched
-      .removeListener(this.#bound.onLauncherLaunched);
+      .removeListener(this.#onLauncherLaunchedBound);
     overwolf.games.launchers.onTerminated
-      .removeListener(this.#bound.onLauncherTerminated);
+      .removeListener(this.#onLauncherTerminatedBound);
     overwolf.games.launchers.onUpdated
-      .removeListener(this.#bound.onLauncherInfoUpdated);
+      .removeListener(this.#onLauncherInfoUpdatedBound);
+
+    this.#started = false;
   }
 
-  private onLauncherLaunched(
+  #onLauncherLaunched(
     info: overwolf.games.launchers.LauncherInfo
   ): void {
     // console.log('onLauncherLaunched', info)
@@ -116,7 +132,7 @@ export class LauncherStatus extends EventEmitter<LauncherStatusEventTypes> {
     this.emit('changed', this.launcherInfo);
   }
 
-  private onLauncherTerminated(): void {
+  #onLauncherTerminated(): void {
     // console.log('onLauncherTerminated')
 
     const isInFocusChanged = this.#isInFocus;
@@ -132,7 +148,7 @@ export class LauncherStatus extends EventEmitter<LauncherStatusEventTypes> {
     this.emit('changed', this.launcherInfo);
   }
 
-  private onLauncherInfoUpdated(
+  #onLauncherInfoUpdated(
     { info }: overwolf.games.launchers.UpdatedEvent
   ): void {
     // console.log('onLauncherInfoUpdated', info, changeType)

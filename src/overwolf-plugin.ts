@@ -15,7 +15,7 @@ export class OverwolfPlugin<PluginType> {
     throw new Error('plugin not initialized');
   }
 
-  private _loadPluginPromise(): Promise<PluginType> {
+  #loadPluginPromise(): Promise<PluginType> {
     return new Promise((resolve, reject) => {
       overwolf.extensions.current.getExtraObject(this.#pluginName, result => {
         if (result.success && result.object) {
@@ -36,7 +36,7 @@ export class OverwolfPlugin<PluginType> {
     }
 
     if (!this.#loadingPromise) {
-      this.#loadingPromise = this._loadPluginPromise();
+      this.#loadingPromise = this.#loadPluginPromise();
     }
 
     this.#plugin = await this.#loadingPromise;

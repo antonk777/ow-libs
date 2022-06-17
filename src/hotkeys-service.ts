@@ -1,4 +1,3 @@
-import { binder } from './binder';
 import { EventEmitter } from './event-emitter';
 import { L } from './utils';
 
@@ -25,47 +24,49 @@ type HotkeyEventTypes = {
 }
 
 export class HotkeyService extends EventEmitter<HotkeyEventTypes> {
-  #bound = binder<HotkeyService>(this);
-
   #hotkeys: HotkeyStore;
 
   #started: boolean
-  readonly #startPromise: Promise<void> | null
+  #startingPromise: Promise<void> | null
+
+  #onHotkeyChangedBound
+  #onHotkeyPressedBound
 
   constructor() {
     super();
 
-    this.#bound = binder<HotkeyService>(this);
+    this.#onHotkeyChangedBound = this.#onHotkeyChanged.bind(this);
+    this.#onHotkeyPressedBound = this.#onHotkeyPressed.bind(this);
 
     this.#hotkeys = {};
 
     this.#started = false;
-    this.#startPromise = this.start();
+    this.#startingPromise = null;
   }
 
-  private async start(): Promise<void> {
+  async start(): Promise<void> {
     if (this.#started) {
       return;
     }
 
-    if (this.#startPromise) {
-      await this.#startPromise;
-      return;
+    if (this.#startingPromise) {
+      return this.#startingPromise;
     }
 
-    overwolf.settings.hotkeys.onChanged
-      .removeListener(this.#bound.handleHotkeyChanged);
+    this.#startingPromise = this.#start();
 
-    overwolf.settings.hotkeys.onPressed
-      .removeListener(this.#bound.handleHotkeyPressed);
+    await this.#startingPromise;
 
-    overwolf.settings.hotkeys.onChanged
-      .addListener(this.#bound.handleHotkeyChanged);
+    this.#startingPromise = null;
+  }
 
-    overwolf.settings.hotkeys.onPressed
-      .addListener(this.#bound.handleHotkeyPressed);
+  async #start(): Promise<void> {
+    this.destroy();
 
-    await this.updateHotkeys();
+    overwolf.settings.hotkeys.onChanged.addListener(this.#onHotkeyChangedBound);
+    overwolf.settings.hotkeys.onPressed.addListener(this.#onHotkeyPressedBound);
+
+    await this.#updateHotkeys();
 
     for (const name in this.#hotkeys) {
       if (this.#hotkeys.hasOwnProperty(name)) {
@@ -94,10 +95,12 @@ export class HotkeyService extends EventEmitter<HotkeyEventTypes> {
   /** Remove all listeners */
   destroy(): void {
     overwolf.settings.hotkeys.onChanged
-      .removeListener(this.#bound.handleHotkeyChanged);
+      .removeListener(this.#onHotkeyChangedBound);
 
     overwolf.settings.hotkeys.onPressed
-      .removeListener(this.#bound.handleHotkeyPressed);
+      .removeListener(this.#onHotkeyPressedBound);
+
+    this.#started = false;
   }
 
   getHotkeyBinding(hotkeyName: string, gameId?: number): string {
@@ -125,7 +128,7 @@ export class HotkeyService extends EventEmitter<HotkeyEventTypes> {
     return '';
   }
 
-  private getHotkeys(): Promise<GetAssignedHotkeyResult> {
+  #getHotkeys(): Promise<GetAssignedHotkeyResult> {
     return new Promise<GetAssignedHotkeyResult>((resolve, reject) => {
       overwolf.settings.hotkeys.get(results => {
         if (results.success) {
@@ -137,8 +140,8 @@ export class HotkeyService extends EventEmitter<HotkeyEventTypes> {
     });
   }
 
-  private async updateHotkeys(): Promise<void> {
-    const hotkeysResult = await this.getHotkeys();
+  async #updateHotkeys(): Promise<void> {
+    const hotkeysResult = await this.#getHotkeys();
 
     for (const hotkey of hotkeysResult.globals) {
       if (!this.#hotkeys[hotkey.name]) {
@@ -151,31 +154,33 @@ export class HotkeyService extends EventEmitter<HotkeyEventTypes> {
       }
     }
 
-    if (hotkeysResult.games !== undefined) {
-      for (const gameId in hotkeysResult.games) {
-        if (hotkeysResult.games.hasOwnProperty(gameId)) {
-          for (const hotkey of hotkeysResult.games[gameId]) {
-            if (!this.#hotkeys[hotkey.name]) {
-              this.#hotkeys[hotkey.name] = {
-                global: '',
-                games: {}
-              };
-            }
+    if (hotkeysResult.games === undefined) {
+      return;
+    }
 
-            if (!this.#hotkeys[hotkey.name].games) {
-              this.#hotkeys[hotkey.name].games = {};
-            }
+    for (const gameId in hotkeysResult.games) {
+      if (!hotkeysResult.games.hasOwnProperty(gameId)) {
+        continue;
+      }
 
-            this.#hotkeys[hotkey.name].games[gameId] = hotkey.binding;
-          }
+      for (const hotkey of hotkeysResult.games[gameId]) {
+        if (!this.#hotkeys[hotkey.name]) {
+          this.#hotkeys[hotkey.name] = {
+            global: '',
+            games: {}
+          };
         }
+
+        if (!this.#hotkeys[hotkey.name].games) {
+          this.#hotkeys[hotkey.name].games = {};
+        }
+
+        this.#hotkeys[hotkey.name].games[gameId] = hotkey.binding;
       }
     }
   }
 
-  private handleHotkeyChanged(
-    event: overwolf.settings.hotkeys.OnChangedEvent
-  ): void {
+  #onHotkeyChanged(event: overwolf.settings.hotkeys.OnChangedEvent): void {
     if (event.gameId === 0) {
       this.#hotkeys[event.name].global = event.binding;
     } else if (this.#hotkeys[event.name].games !== undefined) {
@@ -194,9 +199,7 @@ export class HotkeyService extends EventEmitter<HotkeyEventTypes> {
     this.emit('changed', publicEvent);
   }
 
-  private handleHotkeyPressed(
-    event: overwolf.settings.hotkeys.OnPressedEvent
-  ): void {
+  #onHotkeyPressed(event: overwolf.settings.hotkeys.OnPressedEvent): void {
     this.emit('pressed', event.name);
   }
 
