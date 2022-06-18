@@ -38,7 +38,7 @@ function hydratePersistentState<StateMapT extends Record<string, any>>(
 
 export class StateManager<
   StateMapT extends Record<string, any>
-> extends EventEmitter<StateMapT> {
+  > extends EventEmitter<StateMapT> {
 
   readonly globalName: string;
   readonly #persistent: boolean;
@@ -139,7 +139,7 @@ export class StateManager<
 export class StateClient<StateMapT extends Record<string, any>> {
   readonly globalName: string;
 
-  #stateManager: StateManager<StateMapT>
+  readonly #stateManager
 
   constructor(globalName: string) {
     this.globalName = globalName;
@@ -153,58 +153,22 @@ export class StateClient<StateMapT extends Record<string, any>> {
         'StateManager server not defined in background (main) window'
       );
     }
+
+    this.addListener = this.#stateManager.addListener.bind(this.#stateManager);
+    this.on = this.#stateManager.on.bind(this.#stateManager);
+    this.off = this.#stateManager.off.bind(this.#stateManager);
+    this.removeListener =
+      this.#stateManager.removeListener.bind(this.#stateManager);
+    this.has = this.#stateManager.has.bind(this.#stateManager);
+    this.get = this.#stateManager.get.bind(this.#stateManager);
   }
 
-  /**
-   * Add a listener to an event
-   * @param eventName Event name
-   * @param listener Listener function
-   * @param ref Reference value that can be used to remove this listener,
-   * if omitted it will be the listener itself
-   */
-  addListener(
-    ...args: Parameters<StateManager<StateMapT>['addListener']>
-  ): void {
-    this.#stateManager.addListener(...args);
-  }
-
-  /**
-   * Add multiple listeners for events
-   * @param listenersBundle Map of events to listeners
-   * @param ref Reference value that can be used to remove the listeners
-   */
-  on(...args: Parameters<StateManager<StateMapT>['on']>): void {
-    this.#stateManager.on(...args);
-  }
-
-  /**
-   * Remove multiple listeners for events
-   * @param eventNames Array of event names
-   * @param ref Reference value that map to listeners
-   */
-  off(...args: Parameters<StateManager<StateMapT>['off']>): void {
-    this.#stateManager.off(...args);
-  }
-
-  /**
-   * Remove a listener to an event
-   * @param eventName Event name
-   * @param ref Reference value that was used when adding the listener,
-   * this can be the listener itself
-   */
-  removeListener(
-    ...args: Parameters<StateManager<StateMapT>['removeListener']>
-  ): void {
-    this.#stateManager.removeListener(...args);
-  }
-
-  has(key: string): boolean {
-    return this.#stateManager.has(key);
-  }
-
-  get<Key extends keyof StateMapT>(key: Key): StateMapT[Key] {
-    return this.#stateManager.get(key);
-  }
+  readonly addListener
+  readonly on
+  readonly off
+  readonly removeListener
+  readonly has
+  readonly get
 }
 
 export function makeNiceState<StateMapT extends Record<string, any>>(
