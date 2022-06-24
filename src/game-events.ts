@@ -1,22 +1,25 @@
 import { EventEmitter, Utils } from './';
 import type { GameStatus } from './';
 
-export type GameEvent = {
-  path: string
-  category: string
-  key: string
-  val: any
+export type GameEvent<Path, Val> = {
+  path: Path
+  val: Val
 }
 
-type GameEventTypes = {
-  [key: string]: GameEvent
-}
+type GameEventsTypes<EventTypes extends Record<string, any>> =
+  {
+    '*': GameEvent<'*', EventTypes[keyof EventTypes]>;
+  } & {
+    [Path in keyof EventTypes]: GameEvent<Path, EventTypes[Path]>;
+  };
 
-export class GameEvents extends EventEmitter<GameEventTypes> {
+export class GameEvents<EventTypes extends Record<string, any>>
+  extends EventEmitter<GameEventsTypes<EventTypes>> {
+
   readonly #features: string[]
   readonly #gameStatus: GameStatus
 
-  readonly #state: Record<string, any>
+  readonly #state: Partial<EventTypes>
   readonly #retries: number
 
   #started: boolean
@@ -44,7 +47,7 @@ export class GameEvents extends EventEmitter<GameEventTypes> {
   }
 
   /** Copy of current state, both info updates and last event values */
-  get state(): Record<string, any> {
+  get state(): Partial<EventTypes> {
     return Utils.objectCopy(this.#state);
   }
 
@@ -75,7 +78,7 @@ export class GameEvents extends EventEmitter<GameEventTypes> {
 
     if (success) {
       this.#setListeners();
-      overwolf.games.events.getInfo(result => this.#onGotInfo(result));
+      overwolf.games.events.getInfo(r => this.#onGotInfo(r));
     }
 
     this.#started = true;
@@ -130,51 +133,37 @@ export class GameEvents extends EventEmitter<GameEventTypes> {
     console.log('GameEvents: error:', err);
   }
 
-  /** Wrapper for overwolf.games.events.getInfo */
-  getInfo<T>(): Promise<T> {
-    return new Promise((resolve, reject) => {
-      overwolf.games.events.getInfo((
-        data: overwolf.games.events.GetInfoResult
-      ) => {
-        if (data && data.success && data.res) {
-          resolve(data.res);
-        } else {
-          reject(data);
-        }
-      });
-    });
-  }
-
   #onGotInfo(data: overwolf.games.events.GetInfoResult): void {
     if (!data || !data.success || !data.res) return;
 
     const info = data.res as Record<string, any>;
 
     for (const category in info) {
-      if (category === 'features') continue;
+      if (category === 'features') {
+        continue;
+      }
 
       for (const key in info[category]) {
-        if (!info[category].hasOwnProperty(key)) continue;
+        if (!info[category].hasOwnProperty(key)) {
+          continue;
+        }
 
         const path = `${category}.${key}`;
 
-        let val = info[category][key];
+        let val: any = info[category][key];
 
         if (
           val !== undefined &&
           (this.#state[path] === undefined || this.#state[path] !== val)
         ) {
-          this.#state[path] = val;
+          this.#state[path as keyof EventTypes] = val;
 
           try {
             val = JSON.parse(val);
-          } catch (e) {}
+          } catch (e) { }
 
-          const e: GameEvent = { path, category, key, val };
-
-          this.emit(path, e);
-          this.emit(`${category}.*`, e);
-          this.emit('*', e);
+          this.emit(path, { path, val });
+          this.emit('*', { path, val });
         }
       }
     }
@@ -186,30 +175,31 @@ export class GameEvents extends EventEmitter<GameEventTypes> {
     const info = data.info as Record<string, any>;
 
     for (const category in info) {
-      if (!info.hasOwnProperty(category)) continue;
+      if (!info.hasOwnProperty(category)) {
+        continue;
+      }
 
       for (const key in info[category]) {
-        if (!info[category].hasOwnProperty(key)) continue;
+        if (!info[category].hasOwnProperty(key)) {
+          continue;
+        }
 
         const path = `${category}.${key}`;
 
-        let val = info[category][key];
+        let val: any = info[category][key];
 
         if (
           val !== undefined &&
           (this.#state[path] === undefined || this.#state[path] !== val)
         ) {
-          this.#state[path] = val;
+          this.#state[path as keyof EventTypes] = val;
 
           try {
             val = JSON.parse(val);
-          } catch (e) {}
+          } catch (e) { }
 
-          const e: GameEvent = { path, category, key, val };
-
-          this.emit(path, e);
-          this.emit(`${category}.*`, e);
-          this.emit('*', e);
+          this.emit(path, { path, val });
+          this.emit('*', { path, val });
         }
       }
     }
@@ -219,36 +209,28 @@ export class GameEvents extends EventEmitter<GameEventTypes> {
     if (!data.events || !data.events.length) return;
 
     for (const event of data.events) {
-      const
-        category = 'events',
-        key = event.name,
-        path = `${category}.${key}`;
+      const path = `events.${event.name}`;
 
-      let val = event.data;
+      let val: any = event.data;
 
       if (
         val !== undefined &&
         (this.#state[path] === undefined || this.#state[path] !== val)
       ) {
-        this.#state[path] = val;
+        this.#state[path as keyof EventTypes] = val;
       }
 
       try {
         val = JSON.parse(val);
-      } catch (e) {}
+      } catch (e) { }
 
-      const e: GameEvent = { path, category, key, val };
-
-      this.emit(path, e);
-      this.emit(`${category}.*`, e);
-      this.emit('*', e);
+      this.emit(path, { path, val });
+      this.emit('*', { path, val });
     }
   }
 
-  #tryToSetRequiredFeatures(): Promise<
-    overwolf.games.events.SetRequiredFeaturesResult
-    > {
-
+  #tryToSetRequiredFeatures():
+    Promise<overwolf.games.events.SetRequiredFeaturesResult> {
     return new Promise(resolve => {
       overwolf.games.events.setRequiredFeatures(this.#features, resolve);
     });

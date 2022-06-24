@@ -1,4 +1,17 @@
-type EventListener<EventType> = (event?: EventType) => void
+type EventListener<EventType> = [EventType] extends [undefined]
+  ? () => void
+  : (event: EventType) => void
+
+const listener: EventListener<undefined> = () => {
+  console.log('listener');
+};
+
+const listener2: EventListener<boolean> = (event: boolean) => {
+  console.log('listener2', event);
+};
+
+listener();
+listener2(true);
 
 type EventListenerRef = any
 
@@ -6,13 +19,12 @@ type EventListenersMap<EventType> =
   Map<EventListenerRef, EventListener<EventType>>
 
 type EventListenerStore<EventTypes> = {
-  [EventName in keyof EventTypes]?:
-    EventListenersMap<EventTypes[EventName]>
+  [EventName in keyof EventTypes]?: EventListenersMap<EventTypes[EventName]>
 }
 
 type EventListenerBundle<EventTypes> = {
   readonly [EventName in keyof EventTypes]?:
-    EventListener<EventTypes[EventName]>
+  EventListener<EventTypes[EventName]>
 }
 
 export class EventEmitter<EventTypes extends Record<string, any>> {
@@ -40,10 +52,13 @@ export class EventEmitter<EventTypes extends Record<string, any>> {
    * @param eventName Event name
    * @param value Event value that will be passed as an argument to listeners
    */
-  protected emit<EventName extends keyof EventTypes>(
-    eventName: EventName,
-    value: EventTypes[EventName]
-  ): void {
+  emit<EventName extends keyof EventTypes>(...args: (
+    EventTypes[EventName] extends undefined
+    ? [eventName: EventName, value?: EventTypes[EventName]]
+    : [eventName: EventName, value: EventTypes[EventName]]
+  )): void {
+    const [eventName, value] = args;
+
     if (!this.hasListener(eventName)) {
       return;
     }
@@ -51,7 +66,7 @@ export class EventEmitter<EventTypes extends Record<string, any>> {
     const listenersBundle = this.#listeners[eventName];
 
     if (listenersBundle instanceof Map && listenersBundle.size > 0) {
-      listenersBundle.forEach(listener => listener(value));
+      listenersBundle.forEach(listener => (listener as any)(value));
     }
   }
 
