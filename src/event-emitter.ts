@@ -2,17 +2,6 @@ type EventListener<EventType> = [EventType] extends [undefined]
   ? () => void
   : (event: EventType) => void
 
-const listener: EventListener<undefined> = () => {
-  console.log('listener');
-};
-
-const listener2: EventListener<boolean> = (event: boolean) => {
-  console.log('listener2', event);
-};
-
-listener();
-listener2(true);
-
 type EventListenerRef = any
 
 type EventListenersMap<EventType> =
