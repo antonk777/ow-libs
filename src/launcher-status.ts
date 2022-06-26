@@ -46,6 +46,14 @@ export class LauncherStatus extends EventEmitter<LauncherStatusEventTypes> {
     return objectCopy<LauncherInfo>(this.#launcherInfo);
   }
 
+  get launcherID(): number | null {
+    if (this.#launcherInfo && this.#launcherInfo.classId) {
+      return this.#launcherInfo.classId;
+    }
+
+    return null;
+  }
+
   async start(): Promise<void> {
     if (this.#started) {
       return;
@@ -83,9 +91,9 @@ export class LauncherStatus extends EventEmitter<LauncherStatusEventTypes> {
 
     const launchersInfo:
       overwolf.games.launchers.GetRunningLaunchersInfoResult =
-        await new Promise(resolve => {
-          overwolf.games.launchers.getRunningLaunchersInfo(resolve);
-        });
+      await new Promise(resolve => {
+        overwolf.games.launchers.getRunningLaunchersInfo(resolve);
+      });
 
     if (
       launchersInfo.success &&
@@ -163,13 +171,5 @@ export class LauncherStatus extends EventEmitter<LauncherStatusEventTypes> {
     }
 
     this.emit('changed', this.launcherInfo);
-  }
-
-  get launcherID(): number | null {
-    if (this.#launcherInfo && this.#launcherInfo.classId) {
-      return this.#launcherInfo.classId;
-    }
-
-    return null;
   }
 }

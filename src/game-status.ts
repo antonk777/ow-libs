@@ -35,6 +35,15 @@ export class GameStatus extends EventEmitter<GameStatusEventTypes> {
     this.#startPromise = null;
   }
 
+  /** Get gameID of current or last running game */
+  get gameID(): number | null {
+    if (this.gameInfo) {
+      return Math.floor(this.gameInfo.id / 10);
+    }
+
+    return this.#lastGameID;
+  }
+
   async start(): Promise<void> {
     if (this.#started) {
       return;
@@ -123,14 +132,5 @@ export class GameStatus extends EventEmitter<GameStatusEventTypes> {
     } else {
       this.gameInfo = null;
     }
-  }
-
-  /** Get gameID of current or last running game */
-  get gameID(): number | null {
-    if (this.gameInfo) {
-      return Math.floor(this.gameInfo.id / 10);
-    }
-
-    return this.#lastGameID;
   }
 }
