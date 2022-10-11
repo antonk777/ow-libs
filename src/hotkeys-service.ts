@@ -143,6 +143,8 @@ export class HotkeyService extends EventEmitter<HotkeyEventTypes> {
   async #updateHotkeys(): Promise<void> {
     const hotkeysResult = await this.#getHotkeys();
 
+    // console.log('HotkeyService.#updateHotkeys():', hotkeysResult);
+
     for (const hotkey of hotkeysResult.globals) {
       if (!this.#hotkeys[hotkey.name]) {
         this.#hotkeys[hotkey.name] = {
@@ -181,6 +183,8 @@ export class HotkeyService extends EventEmitter<HotkeyEventTypes> {
   }
 
   #onHotkeyChanged(event: overwolf.settings.hotkeys.OnChangedEvent): void {
+    // console.log('HotkeyService.#onHotkeyChanged():', event);
+
     if (event.gameId === 0) {
       this.#hotkeys[event.name].global = event.binding;
     } else if (this.#hotkeys[event.name].games !== undefined) {

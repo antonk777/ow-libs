@@ -1,3 +1,23 @@
+export const enum ViewportType {
+  Game = 'Game',
+  Monitor = 'Monitor'
+}
+
+export type Viewport = {
+  hash: string
+  name: string
+  id: string | number
+  type: ViewportType
+  monitorHandle: { value: number; }
+  width: number
+  height: number
+  x: number
+  y: number
+  scale: number
+  isPrimary: boolean
+  inFocus: boolean
+}
+
 export class OverwolfWindow {
   #name: string
   #id: string
@@ -342,7 +362,7 @@ export class OverwolfWindow {
   }
 
   static async isWindowVisibleToUser()
-  : Promise<overwolf.windows.IsWindowVisibleToUserResult> {
+    : Promise<overwolf.windows.IsWindowVisibleToUserResult> {
 
     const result: overwolf.windows.IsWindowVisibleToUserResult =
       await new Promise(resolve => {
@@ -354,6 +374,108 @@ export class OverwolfWindow {
     }
 
     throw new OverwolfWindowError({ result });
+  }
+
+  async centerInViewport(viewport: Viewport): Promise<void> {
+    const win = await this.#obtain();
+
+    let
+      left = viewport.x + (viewport.width / 2) - (win.width / 2),
+      top = viewport.y + (viewport.height / 2) - (win.height / 2);
+
+    left = Math.round(left);
+    top = Math.round(top);
+
+    await this.changePosition(left, top);
+  }
+
+  private static makeViewportUid(v: Omit<Viewport, 'hash'>): Viewport {
+    return {
+      hash: `${v.type}/${v.id}/${v.x}/${v.y}/${v.width}/${v.height}/${v.scale}`,
+      ...v
+    };
+  }
+
+  private static async getGameViewport(): Promise<Viewport | null> {
+    return new Promise(resolve => {
+      overwolf.games.getRunningGameInfo(game => {
+        let viewport: Viewport | null = null;
+
+        if (game && game.isRunning) {
+          viewport = OverwolfWindow.makeViewportUid({
+            name: game.title,
+            id: game.id,
+            type: ViewportType.Game,
+            monitorHandle: game.monitorHandle,
+            x: 0,
+            y: 0,
+            width: game.logicalWidth,
+            height: game.logicalHeight,
+            scale: game.width / game.logicalWidth,
+            isPrimary: game.isInFocus,
+            inFocus: game.isInFocus,
+          });
+        }
+
+        resolve(viewport);
+      });
+    });
+  }
+
+  static async getViewportsList(): Promise<Viewport[]> {
+    const monitors = await OverwolfWindow.getMonitorsList();
+
+    let viewports: Viewport[] = monitors.displays
+      .map(display => OverwolfWindow.makeViewportUid({
+        name: display.name,
+        id: display.id,
+        type: ViewportType.Monitor,
+        monitorHandle: display.handle,
+        x: display.x,
+        y: display.y,
+        width: display.width,
+        height: display.height,
+        scale: display.dpiX / 96,
+        isPrimary: display.is_primary,
+        inFocus: false
+      }));
+
+    const game = await this.getGameViewport();
+
+    if (game) {
+      if (game.isPrimary) {
+        viewports = viewports.map((viewport): Viewport => ({
+          ...viewport,
+          isPrimary: false
+        }));
+      }
+
+      return [...viewports, game];
+    }
+
+    return viewports;
+  }
+
+  static async getPrimaryViewport(): Promise<Viewport | null> {
+    return (await OverwolfWindow.getViewportsList())
+      .find(v => v.isPrimary) || null;
+  }
+
+  static async getSecondaryViewport(): Promise<Viewport | null> {
+    const viewports = await OverwolfWindow.getViewportsList();
+
+    let
+      viewport = null,
+      viewportAreaSize = 0;
+
+    for (const v of viewports) {
+      if (!v.isPrimary && (v.width * v.height) > viewportAreaSize) {
+        viewport = v;
+        viewportAreaSize = v.width * v.height;
+      }
+    }
+
+    return viewport;
   }
 }
 
