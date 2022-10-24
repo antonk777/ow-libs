@@ -389,9 +389,9 @@ export class OverwolfWindow {
     await this.changePosition(left, top);
   }
 
-  private static makeViewportUid(v: Omit<Viewport, 'hash'>): Viewport {
+  private static makeViewportWithUid(v: Omit<Viewport, 'hash'>): Viewport {
     return {
-      hash: `${v.type}/${v.id}/${v.x}/${v.y}/${v.width}/${v.height}/${v.scale}`,
+      hash: `${v.x}/${v.y}/${v.width}/${v.height}/${v.scale}`,
       ...v
     };
   }
@@ -402,7 +402,7 @@ export class OverwolfWindow {
         let viewport: Viewport | null = null;
 
         if (game && game.isRunning) {
-          viewport = OverwolfWindow.makeViewportUid({
+          viewport = OverwolfWindow.makeViewportWithUid({
             name: game.title,
             id: game.id,
             type: ViewportType.Game,
@@ -426,7 +426,7 @@ export class OverwolfWindow {
     const monitors = await OverwolfWindow.getMonitorsList();
 
     let viewports: Viewport[] = monitors.displays
-      .map(display => OverwolfWindow.makeViewportUid({
+      .map(display => OverwolfWindow.makeViewportWithUid({
         name: display.name,
         id: display.id,
         type: ViewportType.Monitor,
