@@ -469,7 +469,11 @@ export class OverwolfWindow {
       viewportAreaSize = 0;
 
     for (const v of viewports) {
-      if (!v.isPrimary && (v.width * v.height) > viewportAreaSize) {
+      if (
+        !v.isPrimary &&
+        v.type !== ViewportType.Game &&
+        (v.width * v.height) > viewportAreaSize
+      ) {
         viewport = v;
         viewportAreaSize = v.width * v.height;
       }
