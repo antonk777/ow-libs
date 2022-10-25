@@ -442,15 +442,21 @@ export class OverwolfWindow {
 
     const game = await this.getGameViewport();
 
-    if (game) {
-      if (game.isPrimary) {
-        viewports = viewports.map((viewport): Viewport => ({
-          ...viewport,
-          isPrimary: false
-        }));
+    if (game && game.isPrimary) {
+      const i = viewports.findIndex(v => {
+        return (v.monitorHandle.value === game.monitorHandle.value);
+      });
+
+      viewports = viewports.map((viewport): Viewport => ({
+        ...viewport,
+        isPrimary: false
+      }));
+
+      if (i === -1) {
+        return [game, ...viewports];
       }
 
-      return [...viewports, game];
+      viewports.splice(i, 1, game);
     }
 
     return viewports;
