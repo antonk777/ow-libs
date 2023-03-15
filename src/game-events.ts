@@ -48,7 +48,21 @@ export class GameEvents<EventTypes extends Record<string, any>>
 
   /** Copy of current state, both info updates and last event values */
   get state(): Partial<EventTypes> {
-    return Utils.objectCopy(this.#state);
+    const state = { ...this.#state };
+
+    for (const key in state) {
+      if (state.hasOwnProperty(key)) {
+        const val = state[key];
+
+        if (typeof val === 'string') {
+          try {
+            state[key] = JSON.parse(val);
+          } catch (e) { }
+        }
+      }
+    }
+
+    return state;
   }
 
   /**
