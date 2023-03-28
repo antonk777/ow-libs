@@ -411,7 +411,7 @@ export class OverwolfWindow {
             y: 0,
             width: game.logicalWidth,
             height: game.logicalHeight,
-            scale: game.width / game.logicalWidth,
+            scale: Math.max(game.width / game.logicalWidth, 1),
             isPrimary: game.isInFocus,
             inFocus: game.isInFocus,
           });
