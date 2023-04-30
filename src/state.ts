@@ -74,29 +74,22 @@ export class StateManager<
   }
 
   get<Key extends keyof StateMapT>(key: Key): StateMapT[Key] {
-    const value = this.#state[key];
-
-    if (typeof value === 'object' && value !== null) {
-      return Utils.objectCopy(value);
-    }
-
-    return value;
+    return this.#state[key];
   }
 
   #setObject<Key extends keyof StateMapT>(
     key: Key,
     value: StateMapT[Key]
   ): void {
-    const stringified = JSON.stringify(value);
-
     if (this.#persistent) {
-      localStorage.setItem(this.#localStoragePrefix + key, stringified);
+      localStorage.setItem(
+        this.#localStoragePrefix + key,
+        JSON.stringify(value)
+      );
     }
 
-    const copy = JSON.parse(stringified) as StateMapT[Key];
-
-    this.#state[key] = copy;
-    this.emit(key, copy);
+    this.#state[key] = value;
+    this.emit(key, value);
   }
 
   #setPrimitive<Key extends keyof StateMapT>(
