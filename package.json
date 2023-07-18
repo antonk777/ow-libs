@@ -34,5 +34,8 @@
   },
   "dependencies": {
     "@overwolf/types": "^3.19.3"
+  },
+  "overrides": {
+    "word-wrap": "@aashutoshrathi/word-wrap"
   }
 }
