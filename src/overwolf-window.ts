@@ -391,7 +391,7 @@ export class OverwolfWindow {
 
   private static makeViewportWithUid(v: Omit<Viewport, 'hash'>): Viewport {
     return {
-      hash: `${v.x}/${v.y}/${v.width}/${v.height}/${v.scale}`,
+      hash: `${v.type}/${v.id}/${v.x}/${v.y}/${v.width}/${v.height}/${v.scale}`,
       ...v
     };
   }
